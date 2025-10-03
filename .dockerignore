@@ -1,0 +1,34 @@
+# System / VCS
+.git
+.gitignore
+*.swp
+*.swo
+*.bak
+*.log
+
+# Python caches
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Virtualenvs
+.venv/
+venv/
+
+# Local configs / IDE
+*.env
+*.local
+.vscode/
+.idea/
+
+# Docs & notes
+README.md
+TODO.md
+docs/
+scripts/
+
+# Infra not needed in image
+deploy/
+redis/
+Makefile

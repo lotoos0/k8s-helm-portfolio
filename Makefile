@@ -26,4 +26,20 @@ clean: ## Remove cache
 	find . -name "__pycache__" -type d -exec rm -rf {} + 
 	rm -rf .pytest_cache
 
+# ----------- Docker (API) ----------
+  
+IMAGE_API ?= october-api:dev
+CONTAINER_API ?= october-api
 
+build-api: ## Build API Docker image
+	docker build -t $(IMAGE_API) ./api
+
+run-api-docker: ## Run API container on :8000
+	- docker rm -f $(CONTAINER_API) >/dev/null 2>&1 || true
+	docker run -d --name $(CONTAINER_API) -p 8000:8000 $(IMAGE_API)
+
+logs-api: ## Tail logs from API container
+	docker logs -f $(CONTAINER_API)
+
+stop-api: ## Stop and remove API container
+	- docker rm -f $(CONTAINER_API) >/dev/null 2>&1 || true

@@ -1,0 +1,29 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# MyPy / pytest
+.mypy_cache/
+.pytest_cache/
+
+# Virtualenvs
+.venv/
+venv/
+
+# Env files (sekrety trzymasz gdzie indziej)
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+build/
+
+# Git (niepotrzebne w obrazie)
+.git/
+.gitignore

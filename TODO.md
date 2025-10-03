@@ -1,7 +1,0 @@
-- [ ] api/ działa lokalnie: GET /healthz zwraca {"status":"ok"}.
-- [ ] GET /metrics zwraca metryki Prometheusa (tekst, text/plain; version=0.0.4).
-- [ ] worker/ ma Celery app i przykładowy task (add(x,y)), komenda uruchomienia jest gotowa.
-- [ ] Makefile ma cele: venv, install, run-api, run-worker (worker wystartuje jak będzie Redis — uruchamiać zaczniemy Dzień 3).
-- [ ] .gitignore nie śmieci repo.
-- [ ] GitHub Project board „October-DevOps” istnieje, backlog wklejony.
-- [ ] Commit: [DAY01] API health+metrics, Celery skeleton, Makefile, board.
