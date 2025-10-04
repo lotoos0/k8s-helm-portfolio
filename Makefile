@@ -43,3 +43,25 @@ logs-api: ## Tail logs from API container
 
 stop-api: ## Stop and remove API container
 	- docker rm -f $(CONTAINER_API) >/dev/null 2>&1 || true
+
+# --------- Docker Compose ----------
+compose-up: ## Build & run all services (api, redis, worker)
+	docker compose up -d --build
+
+compose-logs: ## Tail logs of all services
+	docker compose logs -f
+
+compose-down: ## Stop and remove all services
+	docker compose down -v 
+
+# ---------- Smoke helpers (Celery calls via docker exec) ---------
+worker-ping: ## Call ping task on worker (result in logs)
+	docker exec october-worker python -c "from worker.app.tasks import ping; print(ping.delay().id)"
+
+worker-add: ## Call add(1,2) task on worker (result id printed)
+	docker exec october-worker python -c "from worker.app.tasks import add; print(add.delay(1,2).id)"
+
+# Y Can retrieve result if backend is enabled and reachable
+worker-result: ## Get result by id: make worker-result ID=<task_id>
+	@if [ -z "$(ID)" ]; then echo "Usage: make worker-result ID=<task_id>"; exit 1; fi
+	docker exec october-worker python -c "from celery.result import AsyncResult; from worker.app.celery_app import app; r=AsyncResult('$(ID)', app=app); print(r.status, r.result)"
