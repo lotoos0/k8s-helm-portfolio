@@ -7,7 +7,11 @@ def create_app() -> FastAPI:
 
     @app.get("/healthz")
     def healthz():
-        return {"status", "ok"}
+        return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready():
+        return {"ready": True}
 
     @app.get("/metrics")
     def metrics():

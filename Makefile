@@ -65,3 +65,17 @@ worker-add: ## Call add(1,2) task on worker (result id printed)
 worker-result: ## Get result by id: make worker-result ID=<task_id>
 	@if [ -z "$(ID)" ]; then echo "Usage: make worker-result ID=<task_id>"; exit 1; fi
 	docker exec october-worker python -c "from celery.result import AsyncResult; from worker.app.celery_app import app; r=AsyncResult('$(ID)', app=app); print(r.status, r.result)"
+
+# ----------- Dev quality ------------
+lint: ## Run Ruff (lint + imports)
+	$(VENV)/bin/ruff check api
+
+fmt: ## Format with Black + Ruff imports
+	$(VENV)/bin/black api
+	$(VENV)/bin/ruff check --select I --fix api
+
+test: ## Run pytest with coverage 
+	$(VENV)/bin/pytest --cov=api --cov-report=term-missing
+
+ci: ## Lint + Test (for local CI-like run)
+	make lint && make fmt && make test

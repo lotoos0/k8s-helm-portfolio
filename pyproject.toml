@@ -1,0 +1,29 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = '''
+/(
+    \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["venv",".venv","build","dist"]
+
+[tool.ruff.lint]
+select = ["E","F","W","I","UP","B","ASYNC","S","C4"]
+ignore = ["E501"] # long lines - control Black
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"] # allow assert in tests
+
+[tool.pytest.ini_options]
+miniversion = "8.0"
+addopts = "-q --disable-warnings --maxfail=1"
+testpaths = ["api/tests"]
+pythonpath = ["."]
