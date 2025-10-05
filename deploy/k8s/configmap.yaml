@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: october
+data:
+  APP_NAME: "DevOps October API"
+  APP_ENV: "dev"
+  PORT: "8000"

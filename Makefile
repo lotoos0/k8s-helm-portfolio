@@ -79,3 +79,32 @@ test: ## Run pytest with coverage
 
 ci: ## Lint + Test (for local CI-like run)
 	make lint && make fmt && make test
+
+
+# ------------ Kubernates (MInikube) -------------
+KNS ?= october
+
+k8s-build-load: ## Build images and load to Minikube
+	make build-api
+	minikube image load october-api:dev
+
+k8s-apply: ## Apply namespace + config + api (deployment, service)
+	kubectl apply -f deploy/k8s/ns.yaml
+	kubectl apply -f deploy/k8s/configmap.yaml
+	kubectl apply -f deploy/k8s/deployment-api.yaml
+	kubectl apply -f deploy/k8s/service-api.yaml
+
+k8s-delete: ## Delete all app resources
+	- kubectl delete -f deploy/k8s/service-api.yaml --ignore-not-found
+	- kubectl delete -f deploy/k8s/deployment-api.yaml --ignore-not-found
+	- kubectl delete -f deploy/k8s/configmap.yaml --ignore-not-found
+	- kubectl delete -f deploy/k8s/ns.yaml --ignore-not-found
+
+k8s-port-api: ## Port-forward API :8080 -> svc/api:80
+	kubectl -n $(KNS) port-forward svc/api 8080:80
+
+k8s-logs-api: ## Tail API pod logs
+	kubectl -n $(KNS) logs -l app=api -f --max-log-requests=3
+
+k8s-get: ## Quick view
+	kubectl -n $(KNS) get deploy,po,svc
