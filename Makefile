@@ -106,5 +106,19 @@ k8s-port-api: ## Port-forward API :8080 -> svc/api:80
 k8s-logs-api: ## Tail API pod logs
 	kubectl -n $(KNS) logs -l app=api -f --max-log-requests=3
 
+k8s-describe-api: ## Describe API deployment and pod
+	kubectl -n $(KNS) describe deploy/api
+	kubectl -n $(KNS) get po -l app=api
+	kubectl -n $(KNS) describe po -l app=api | sed -n '1,120p'
+
+k8s-restart-api: ## Rollout restart API
+	kubectl -n $(KNS) rollout restart deploy/api
+	kubectl -n $(KNS) rollout status deploy/api
+
+k8s-set-image-api: ## Update image (usage: make k8s-set-image-api IMG=myrepo/october-api:tag)
+	@if [ -z "$(IMG)" ]; then echo "Usage: make k8s-set-image-api IMG=<image>"; exit 1; fi 
+	kubectl -n $(KNS) set image deploy/api api=$(IMG)
+	kubectl -n $(KNS) rollout status deploy/api
+
 k8s-get: ## Quick view
 	kubectl -n $(KNS) get deploy,po,svc

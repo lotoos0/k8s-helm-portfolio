@@ -28,16 +28,26 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-config
-                # - secretRef: 
-                # name: app-secret
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
           readinessProbe:
             httpGet:
               path: /ready
               port: http
-            initialDelaySeconds: 3
-            periodSeconds: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: "100m"
