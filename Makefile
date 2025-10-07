@@ -122,3 +122,28 @@ k8s-set-image-api: ## Update image (usage: make k8s-set-image-api IMG=myrepo/oct
 
 k8s-get: ## Quick view
 	kubectl -n $(KNS) get deploy,po,svc
+
+# ------------- Ingress (MInikube) -----------
+
+k8s-enable-ingress: ## Enable NGINX ingress addon in Minikube
+	minikube addons enable ingress
+	kubectl -n ingress-nginx get pods
+
+k8s-apply-ingress: ## Apply API ingress with dynamic host api.<minikube-ip>.nip.io
+	@IP=$$(minikube ip); \
+	HOST=api.$$IP.nip.io; \
+	echo "Using host: $$HOST"; \
+	cat deploy/k8s/ingress-api.yaml | sed "s/api\.[0-9.]*\.nip\.io/$$HOST/g" | kubectl apply -f -
+
+k8s-delete-ingress: ## Delete API ingress (host-insensitive)
+	- kubectl -n $(KNS) delete ingress/api --ignore-not-found
+
+k8s-curl-ingress: ## Curl ingress /healthz
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	echo "GET http://$$HOST/healthz"; \
+	curl -sS --max-time 5 http://$$HOST/healthz | jq .
+
+k8s-open-ingress: ## Open in browser (Linux xdg-open/mac open)
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; URL=http://$$HOST/healthz; \
+	echo $$URL; \
+	( command -v xdg-open >/dev/null && xdg-open $$URL ) || ( command -v open >/dev/null && open $$URL ) || true

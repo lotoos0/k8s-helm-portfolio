@@ -80,6 +80,16 @@ curl -s localhost:8080/healthz
 
 ```
 
+### Ingress (NGINX on Minikube)
+
+```bash
+make k8s-enable-ingress         # one-time
+
+make k8s-apply-ingress          # applies Ingress with host api.<minikube-ip>.nip.io
+
+make k8s-curl-ingress           # smoke: /healthz
+```
+
 ## Health & Probes
 
 - **/healthz** → liveness (process alive)
@@ -109,6 +119,8 @@ Run `make help` for a list. Highlights:
 - **K8s:** `k8s-build-load`, `k8s-apply`, `k8s-get`, `k8s-port-api`, `k8s-logs-api`,
 
 `k8s-describe-api`, `k8s-restart-api`, `k8s-set-image-api`
+
+- **Ingress:** `k8s-enable-ingress`, `k8s-apply-ingress`, `k8s-delete-ingress`, `k8s-curl-ingress`, `k8s-open-ingress`
 
 ## Roadmap (Milestones)
 
