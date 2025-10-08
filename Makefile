@@ -11,10 +11,11 @@ help: ## Show help for targets
 venv: ## Create virtualenv
 	@test -d $(VENV) || $(PY) -m venv $(VENV)
 
-install: venv ## Install all dependencies (API + worker)
+install: venv ## Install all dependencies (API + worker + scripts)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r api/requirements.txt
 	$(PIP) install -r worker/requirements.txt
+	$(PIP) install -r scripts/requirements.txt
 
 run-api: ## Run FastAPI locally on :800 (reload)
 	$(VENV)/bin/uvicorn api.app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -147,3 +148,33 @@ k8s-open-ingress: ## Open in browser (Linux xdg-open/mac open)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; URL=http://$$HOST/healthz; \
 	echo $$URL; \
 	( command -v xdg-open >/dev/null && xdg-open $$URL ) || ( command -v open >/dev/null && open $$URL ) || true
+
+# ----- Metrics server / HPA ----------
+k8s-enable-metrics: ## Enable metrics-server in Minikube
+	minikube addons enable metrics-server
+	kubectl -n kube-system get pods | grep metrics-server || true
+
+k8s-apply-hpa: ## Apply HPA for API
+	kubectl apply -f deploy/k8s/hpa-api.yaml 
+
+k8s-hpa-status: ## Watch HPA & ReplicaSet status
+	@echo "HPA:"
+	@kubectl -n $(KNS) get hpa api -o wide || true
+	@echo "\nDeploy:"
+	@kubectl -n $(KNS) get deploy api || true
+	@echo "\nPods:"
+	@kubectl -n $(KNS) get po -l app=api -w 
+
+k8s-top: ## Show CPU/mem usage for pods and nodes
+	@echo "Pods usage:"; kubectl -n $(KNS) top pods || true
+	@echo "Nodes usage:"; kubectl top nodes || true
+
+
+# ---------- Load tester -----------
+load-test: ## Run HTTP load test (use URL=... CONC=... DUR=...)
+	$(PYTHON) scripts/load_tester.py --url=$(URL) --concurrency=$(CONC) --duration=$(DUR)
+
+# Defaults for convenience 
+URL ?= http://localhost:8080/healthz
+CONC ?= 100
+DUR ?= 90

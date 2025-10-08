@@ -1,77 +1,63 @@
-# October-DevOps – Issues (M1, Day07)
+# October-DevOps – Issues (M1, Day08)
 
-## [M1] Enable NGINX Ingress Controller (Minikube)
+## [M1] Enable metrics-server on Minikube
 
 **Labels:** `feature`, `chore`  
 **Description:**  
-Enable and verify the NGINX Ingress Controller on Minikube for routing external traffic to services.
+Enable the Kubernetes metrics-server addon on Minikube to provide CPU/memory metrics required by HPA.
 
 **Acceptance criteria:**
 
-- [x] Ingress controller enabled via `minikube addons enable ingress`.
-- [x] Pods in `kube-system` show `ingress-nginx-controller` running.
-- [x] Verified by `kubectl get pods -n ingress-nginx`.
-- [x] Namespace `ingress-nginx` confirmed and reachable.
+- [x] Metrics server enabled via `minikube addons enable metrics-server`.
+- [x] Confirmed running: `kubectl get pods -n kube-system | grep metrics-server`.
+- [x] `kubectl top nodes` and `kubectl top pods` return live CPU/memory metrics.
+- [x] API Deployment metrics visible (`kubectl top pod -n october`).
 
 ---
 
-## [M1] API Ingress resource
+## [M1] Create HPA manifest for API (CPU autoscaling)
 
-**Labels:** `feature`  
+**Labels:** `feature`, `test`  
 **Description:**  
-Create and apply an Ingress manifest for the API service, exposing it through NGINX with nip.io domain mapping.
+Create and apply a HorizontalPodAutoscaler (HPA) manifest for the API Deployment (autoscaling/v2).
 
 **Acceptance criteria:**
 
-- [x] Manifest `deploy/k8s/ingress-api.yaml` created.
-- [x] Ingress route maps `api.<MINIKUBE_IP>.nip.io` → API service on port 8000.
-- [x] `curl http://api.<MINIKUBE_IP>.nip.io/healthz` returns `{"status":"ok"}`.
-- [x] TLS not required (plain HTTP for now).
-- [x] Ingress applies cleanly and works after controller is enabled.
+- [x] File `deploy/k8s/hpa-api.yaml` created.
+- [x] Scales Deployment/api between minReplicas=1 and maxReplicas=3. *(Note: maxReplicas=5)*
+- [x] Uses CPU utilization target (e.g. `targetCPUUtilizationPercentage: 70`). *(averageUtilization: 60)*
+- [x] Applies cleanly: `kubectl apply -f deploy/k8s/hpa-api.yaml -n october`.
+- [x] Verify: `kubectl get hpa -n october` shows target and metrics.
 
 ---
 
-## [M1] Makefile ingress targets
+## [M1] Load tester script
+
+**Labels:** `feature`, `test`  
+**Description:**  
+Create a simple load testing script that generates configurable concurrent requests against the API to trigger autoscaling.
+
+**Acceptance criteria:**
+
+- [x] Script located at `scripts/load_tester.py`.
+- [x] Configurable parameters: RPS, concurrency, duration.
+- [x] Uses `aiohttp` or `requests-futures` to send `/healthz` or `/ready` requests. *(Uses requests+ThreadPoolExecutor)*
+- [x] Prints live request rate and success/failure counts.
+- [x] Can trigger HPA scaling when run for ~60–120s.
+- [ ] Optional: progress bar or ASCII chart of responses.
+
+---
+
+## [M1] Makefile: HPA & metrics targets
 
 **Labels:** `chore`  
 **Description:**  
-Extend Makefile with helper targets for ingress operations.
+Add helper Makefile targets for HPA lifecycle and cluster monitoring.
 
 **Acceptance criteria:**
 
-- [x] `make ingress-enable` – enables Minikube ingress addon.
-- [x] `make ingress-apply` – applies ingress manifests.
-- [x] `make ingress-test` – performs curl test to `/healthz` endpoint.
-- [x] Commands work without manual typing of IP (resolved via `minikube ip`).
-
----
-
-## [M1] docs: Local vs K8s runbook
-
-**Labels:** `docs`  
-**Description:**  
-Create a runbook explaining local Docker Compose vs K8s environments and how to debug ingress flows.
-
-**Acceptance criteria:**
-
-- [x] File `docs/local-vs-k8s-runbook.md` created.
-- [x] Includes short guide:
-  - How to access API via Minikube IP.
-  - How to check ingress logs.
-  - How to troubleshoot 404/connection issues.
-- [x] Provides comparison table: Docker Compose vs K8s.
-
----
-
-## [M1] docs: README update: Ingress section
-
-**Labels:** `docs`  
-**Description:**  
-Add a section about Minikube Ingress setup and API exposure in README.md.
-
-**Acceptance criteria:**
-
-- [ ] README includes step-by-step Ingress instructions.
-- [ ] Mentions `nip.io` usage with `minikube ip`.
-- [ ] References new Makefile ingress targets.
-- [ ] Section titled “Ingress (Minikube)” added.
+- [x] `make k8s-enable-metrics` – enables metrics-server.
+- [x] `make k8s-apply-hpa` – applies HPA manifest.
+- [x] `make k8s-hpa-status` – shows HPA status (`kubectl get hpa -n october`).
+- [x] `make k8s-top` – displays CPU usage for pods/nodes.
+- [x] `make load-test` – runs local load tester against API ingress or port-forward.
