@@ -119,10 +119,16 @@ Run `make help` for a list. Highlights:
 
 ## Roadmap (Milestones)
 
-- **M1 (by Oct 14):** Docker + base K8s manifests + probes + Ingress + HPA + Redis + Worker ✅ **in progress**
-- **M2 (by Oct 23):** Helm chart (dev/prod), rollout/rollback
-- **M3 (by Oct 28):** CI/CD: build → test → scan → push → `helm upgrade --install` + E2E smoke
-- **M4 (by Oct 31):** Prometheus + Grafana, 2 alerts, final README (incl. costs)
+- **M1 (by Oct 09):** Containerized stack (FastAPI + Celery worker + Redis) deployed to Minikube.  
+  Includes Dockerfiles, base K8s manifests, probes, Ingress, and HPA. ✅ **DONE**
+- **M2 (by Oct 14):** Helm chart (dev/prod) with templates, values, and rollback testing.
+- **M3 (by Oct 19):** CI/CD pipeline – build → test → scan → push → deploy via `helm upgrade --install`  
+  with automated E2E smoke test after deployment.
+- **M4 (by Oct 23):** Observability – Prometheus + Grafana + Alertmanager with 2 alerts (CrashLoop, CPU >80%)  
+  and dashboards for RPS, latency, and error rates.
+- **M5 (by Oct 31):** Production readiness & release polish – Redis backup/restore script,  
+  prod configuration, chaos testing, final README (EN) with cost analysis and diagrams.  
+  📦 **Release v0.1.0**
 
 ## Security Notes (WIP)
 
