@@ -178,3 +178,30 @@ load-test: ## Run HTTP load test (use URL=... CONC=... DUR=...)
 URL ?= http://localhost:8080/healthz
 CONC ?= 100
 DUR ?= 90
+
+# --------- K8s: Redis & Worker -----------
+k8s-apply-redis: ## Apply Redis (PVC + Deployment + Service)
+	kubectl apply -f deploy/k8s/redis/pvc.yaml
+	kubectl apply -f deploy/k8s/redis/deployment.yaml
+	kubectl apply -f deploy/k8s/redis/service.yaml
+	kubectl -n $(KNS) rollout status deploy/redis
+
+k8s-build-load-worker: # Build and load worker image into Minikube
+	docker build -t october-worker:dev ./worker
+	minikube image load october-worker:dev
+
+k8s-apply-worker: ## Apply Celery worker deployment
+	kubectl apply -f deploy/k8s/worker/deployment.yaml
+	kubectl -n $(KNS) rollout status deploy/worker 
+
+k8s-logs-worker: ## Tail worker logs 
+	kubectl -n $(KNS) logs -l app=worker -f --max-log-requests=3 
+
+# Exec helpers: run python in worker pod
+k8s-exec-worker-ping: ## Call ping() via python inside worker pod
+	@POD=$$(kubectl -n $(KNS) get po -l app=worker -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl -n $(KNS) exec $$POD -- python -c "from worker.app.tasks import ping; print(ping.delay().id)"
+
+k8s-exec-worker-add: ## Call add(1,2) via python inside worker pod
+	@POD=$$(kubectl -n $(KNS) get po -l app=worker -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl -n $(KNS) exec $$POD -- python -c "from worker.app.tasks import add; print(add.delay(1,2).id)"

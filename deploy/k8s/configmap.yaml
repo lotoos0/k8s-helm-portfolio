@@ -7,3 +7,5 @@ data:
   APP_NAME: "DevOps October API"
   APP_ENV: "dev"
   PORT: "8000"
+  BROKER_URL: "redis://redis.october.svc.cluster.local:6379/1"
+  RESULT_BACKEND: "redis://redis.october.svc.cluster.local:6379/1"
