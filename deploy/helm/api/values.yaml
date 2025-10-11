@@ -1,64 +1,155 @@
+# Default values for october-devops chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+## @param namespace Kubernetes namespace where resources will be deployed
 namespace: october
+
+## @param imagePullPolicy Global image pull policy
+## Options: IfNotPresent (default), Always, Never
 imagePullPolicy: IfNotPresent
-# Global toggles
+
+# ─────────────────────────────────────────────────────────
+# Global Configuration
+# These values apply to all components and can be overridden
+# per-component (api.*, worker.*) for fine-grained control
+# ─────────────────────────────────────────────────────────
+
+## ServiceAccount configuration
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
 serviceAccount:
+  ## @param serviceAccount.create Whether to create a ServiceAccount
   create: true
+  ## @param serviceAccount.name ServiceAccount name (auto-generated from chart name if empty)
   name: ""
+
+## @param imagePullSecrets List of secret names for pulling images from private registries
+## Example: imagePullSecrets: ["ghcr-pull-secret", "dockerhub-secret"]
 imagePullSecrets: []
+
+## @param podAnnotations Annotations added to all pods (Prometheus scraping enabled by default)
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/path: "/metrics"
   prometheus.io/port: "8000"
+
+## @param podLabels Additional custom labels for all pods
 podLabels: {}
+
+## Pod-level security context
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 podSecurityContext:
+  ## @param podSecurityContext.runAsNonRoot Require pods to run as non-root user
   runAsNonRoot: true
+  ## @param podSecurityContext.runAsUser User ID to run containers (must match Dockerfile USER)
   runAsUser: 10001
+  ## @param podSecurityContext.fsGroup Group ID for volume ownership
   fsGroup: 10001
+
+## Container-level security context (applies to all containers)
 containerSecurityContext:
+  ## @param containerSecurityContext.allowPrivilegeEscalation Prevent privilege escalation
   allowPrivilegeEscalation: false
+  ## @param containerSecurityContext.readOnlyRootFilesystem Make root filesystem read-only
+  ## Note: Set to false if app writes to /tmp or other paths
   readOnlyRootFilesystem: false
+  ## @param containerSecurityContext.capabilities.drop Drop all Linux capabilities by default
   capabilities:
     drop: ["ALL"]
+
+## @param nodeSelector Node labels for pod assignment (empty = any node)
+## Example: nodeSelector: { "kubernetes.io/os": "linux" }
 nodeSelector: {}
+
+## @param tolerations Tolerations for pod scheduling (empty = default)
+## Example: tolerations: [{ key: "key1", operator: "Equal", value: "value1", effect: "NoSchedule" }]
 tolerations: []
+
+## @param affinity Affinity rules for pod scheduling (empty = default)
+## Example: affinity: { nodeAffinity: {...} }
 affinity: {}
+
+# ─────────────────────────────────────────────────────────
+# API Service Configuration
+# ─────────────────────────────────────────────────────────
+
 api:
+  ## Docker image configuration
   image:
+    ## @param api.image.repository API container image repository
     repository: october-api
+    ## @param api.image.tag API container image tag (override in values-{env}.yaml)
     tag: dev
+
+  ## @param api.replicaCount Number of API pod replicas (overridden by HPA when enabled)
   replicaCount: 1
+
+  ## API resource requests and limits
+  ## ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 100m      # Guaranteed minimum CPU
+      memory: 128Mi  # Guaranteed minimum memory
     limits:
-      cpu: 300m
-      memory: 256Mi
+      cpu: 300m      # Maximum CPU before throttling
+      memory: 256Mi  # Maximum memory before OOM kill
+
+  ## Kubernetes Service configuration
   service:
+    ## @param api.service.type Service type (ClusterIP, NodePort, LoadBalancer)
     type: ClusterIP
+    ## @param api.service.port Service port (internal cluster communication)
     port: 80
+
+  ## Ingress configuration for external access
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
   ingress:
+    ## @param api.ingress.enabled Enable Ingress resource
     enabled: true
+    ## @param api.ingress.className Ingress controller class name
     className: nginx
+    ## @param api.ingress.host Hostname for external access (set via values-{env}.yaml or --set)
     host: ""
+    ## @param api.ingress.path URL path pattern (NGINX regex)
     path: /(.*)
+
+  ## Horizontal Pod Autoscaler configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
   hpa:
+    ## @param api.hpa.enabled Enable HPA (requires metrics-server)
     enabled: true
+    ## @param api.hpa.minReplicas Minimum number of replicas
     minReplicas: 1
+    ## @param api.hpa.maxReplicas Maximum number of replicas
     maxReplicas: 5
+    ## @param api.hpa.targetCPU Target CPU utilization percentage
     targetCPU: 60
-  podAnnotations: {} # per-component override
-  podLabels: {}
-  podSecurityContext: {} # per-component override
-  containerSecurityContext: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+
+  ## Per-component overrides (merge with global values above)
+  podAnnotations: {}             # Additional API-specific annotations
+  podLabels: {}                  # Additional API-specific labels
+  podSecurityContext: {}         # Override global pod security context
+  containerSecurityContext: {}   # Override global container security context
+  nodeSelector: {}               # API-specific node selection
+  tolerations: []                # API-specific tolerations
+  affinity: {}                   # API-specific affinity rules
+
+# ─────────────────────────────────────────────────────────
+# Worker (Celery) Configuration
+# ─────────────────────────────────────────────────────────
+
 worker:
+  ## Docker image configuration
   image:
+    ## @param worker.image.repository Worker container image repository
     repository: october-worker
+    ## @param worker.image.tag Worker container image tag
     tag: dev
+
+  ## @param worker.replicaCount Number of worker replicas
   replicaCount: 1
+
+  ## Worker resource requests and limits
   resources:
     requests:
       cpu: 100m
@@ -66,6 +157,8 @@ worker:
     limits:
       cpu: 300m
       memory: 256Mi
+
+  ## Per-component overrides
   podAnnotations: {}
   podLabels: {}
   podSecurityContext: {}
@@ -73,10 +166,19 @@ worker:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+
+# ─────────────────────────────────────────────────────────
+# Redis Configuration
+# ─────────────────────────────────────────────────────────
+
 redis:
+  ## @param redis.enabled Deploy Redis instance (disable if using external Redis)
   enabled: true
+  ## @param redis.image Redis container image
   image: redis:7-alpine
+  ## @param redis.storage PersistentVolumeClaim size
   storage: 1Gi
+  ## Redis resource requests and limits
   resources:
     requests:
       cpu: 50m
@@ -84,10 +186,19 @@ redis:
     limits:
       cpu: 200m
       memory: 128Mi
+
+# ─────────────────────────────────────────────────────────
+# Environment Variables (injected via ConfigMap)
+# ─────────────────────────────────────────────────────────
+
 env:
   APP_NAME: "DevOps October API"
   APP_ENV: "dev"
   PORT: "8000"
+  ## Redis connection strings (uses in-cluster service name)
   BROKER_URL: "redis://redis:6379/0"
   RESULT_BACKEND: "redis://redis:6379/1"
+
+## @param secrets Additional secrets (injected via Secret resource)
+## Example: secrets: { DB_PASSWORD: "changeme" }
 secrets: {}
