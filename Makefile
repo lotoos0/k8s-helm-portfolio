@@ -205,3 +205,30 @@ k8s-exec-worker-ping: ## Call ping() via python inside worker pod
 k8s-exec-worker-add: ## Call add(1,2) via python inside worker pod
 	@POD=$$(kubectl -n $(KNS) get po -l app=worker -o jsonpath='{.items[0].metadata.name}'); \
 	kubectl -n $(KNS) exec $$POD -- python -c "from worker.app.tasks import add; print(add.delay(1,2).id)"
+
+# ---------- Helm -------------
+HELM_NAME ?= app
+HELM_DIR  ?= deploy/helm/api
+HELM_NS   ?= october
+
+helm-lint: ## Helm lint
+	helm lint $(HELM_DIR)
+
+helm-template-dev: ## Render templates (dev)
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	helm template $(HELM_NAME) $(HELM_DIR) \
+	  --namespace $(HELM_NS) \
+	  -f $(HELM_DIR)/values.yaml \
+	  -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=$$HOST | sed -n '1,200p'
+
+helm-up-dev: ## Upgrade/Install dev (Minikube)
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
+	  --namespace $(HELM_NS) \
+	  -f $(HELM_DIR)/values.yaml \
+	  -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=$$HOST
+
+helm-del: ## Uninstall release
+	helm uninstall $(HELM_NAME) -n $(HELM_NS) || true

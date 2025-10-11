@@ -1,0 +1,25 @@
+namespace: october
+imagePullPolicy: IfNotPresent
+api:
+  image:
+    repository: ghcr.io/your-org/october-api
+    tag: 0.1.0
+  replicaCount: 2
+  ingress:
+    enabled: true
+    className: nginx
+    host: "api.example.com"
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPU: 60
+worker:
+  image:
+    repository: ghcr.io/your-org/october-worker
+    tag: 0.1.0
+  replicaCount: 2
+redis:
+  storage: 5Gi
+env:
+  APP_ENV: "prod"

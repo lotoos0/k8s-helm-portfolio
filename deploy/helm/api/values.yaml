@@ -1,0 +1,57 @@
+namespace: october
+imagePullPolicy: IfNotPresent
+api:
+  image:
+    repository: october-api
+    tag: dev
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: true
+    className: nginx
+    host: "" # override in values-dev/prod
+    path: /(.*)
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPU: 60
+worker:
+  image:
+    repository: october-worker
+    tag: dev
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+redis:
+  enabled: true
+  image: redis:7-alpine
+  storage: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+env:
+  APP_NAME: "DevOps October API"
+  APP_ENV: "dev"
+  PORT: "8000"
+  BROKER_URL: "redis://redis:6379/0"
+  RESULT_BACKEND: "redis://redis:6379/1"
+secrets: {}

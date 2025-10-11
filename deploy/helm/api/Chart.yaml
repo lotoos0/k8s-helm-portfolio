@@ -1,0 +1,6 @@
+apiVersion: v2
+name: app
+description: FastAPI + Celery worker + Redis demo (K8s + Helm +CI/CD + Observability)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

@@ -1,0 +1,13 @@
+namespace: october
+api:
+  image:
+    repository: october-api
+    tag: dev
+  ingress:
+    enabled: true
+    className: nginx
+    host: "api.CHANGE_ME.nip.io"
+worker:
+  image:
+    repository: october-worker
+    tag: dev
