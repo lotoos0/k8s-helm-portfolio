@@ -93,12 +93,13 @@ make load-test URL=http://api.$IP.nip.io/healthz CONC=200 DUR=120
 make k8s-top
 ```
 
-### Helm (dev on Minikube)
+### Helm (dev/prod)
 
 ```bash
 make helm-lint         # Lint chart structure
 make helm-template-dev # Render templates (preview)
 make helm-up-dev       # Install/upgrade to namespace 'october'
+make helm-del          # Uninstall release
 
 # Verify:
 IP=$(minikube ip)
@@ -106,6 +107,13 @@ curl -s http://api.$IP.nip.io/healthz
 ```
 
 The Helm chart (`deploy/helm/api`) includes API, Redis, Worker, Ingress, and HPA in a single release.
+
+**Environment-specific values:**
+- **`values-dev.yaml`**: Local dev (Minikube) — single replicas, local images (`:dev` tag), nip.io ingress
+- **`values-prod.yaml`**: Production — 2+ replicas, HPA enabled, versioned images from registry (`:0.1.0`), real domain
+
+> **Note:** Helm deployment replaces manual K8s YAML management from `deploy/k8s/`.
+> Use `make k8s-*` targets for raw manifests or `make helm-*` for Helm-based workflow.
 
 ## Health & Probes
 
