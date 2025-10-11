@@ -1,5 +1,27 @@
 namespace: october
 imagePullPolicy: IfNotPresent
+# Global toggles
+serviceAccount:
+  create: true
+  name: ""
+imagePullSecrets: []
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8000"
+podLabels: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop: ["ALL"]
+nodeSelector: {}
+tolerations: []
+affinity: {}
 api:
   image:
     repository: october-api
@@ -18,13 +40,20 @@ api:
   ingress:
     enabled: true
     className: nginx
-    host: "" # override in values-dev/prod
+    host: ""
     path: /(.*)
   hpa:
     enabled: true
     minReplicas: 1
     maxReplicas: 5
     targetCPU: 60
+  podAnnotations: {} # per-component override
+  podLabels: {}
+  podSecurityContext: {} # per-component override
+  containerSecurityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 worker:
   image:
     repository: october-worker
@@ -37,6 +66,13 @@ worker:
     limits:
       cpu: 300m
       memory: 256Mi
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 redis:
   enabled: true
   image: redis:7-alpine

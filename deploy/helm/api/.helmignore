@@ -1,0 +1,41 @@
+# Common junk
+.git/
+.gitignore
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.DS_Store
+.project
+.idea/
+*.tmproj
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Local files (overrides)
+values.*local.yaml
+values.local.*.yaml
+
+# Secrets
+.env*
+*.secret.yaml
+secrets/
+
+# Dev docs and notes
+README.md
+TODO.md
+docs/
+
+# CI/CD
+.gitlab-ci.yml
+.github/
+.circleci/
+
+# Testing
+tests/
+*_test.yaml

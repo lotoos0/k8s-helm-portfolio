@@ -1,21 +1,61 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: worker
   namespace: {{ .Values.namespace }}
-  labels: { app: worker }
+  labels:
+    app: worker
+    {{- include "app.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.worker.replicaCount }}
   selector:
-    matchLabels: { app: worker }
+    matchLabels:
+      app: worker
+      {{- include "app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      labels: { app: worker }
+      labels:
+        app: worker
+        {{- include "app.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.worker.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.worker.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      serviceAccountName: {{ default (include "app.fullname" .) .Values.serviceAccount.name }}
       terminationGracePeriodSeconds: 20
+      {{- with (.Values.worker.podSecurityContext | default .Values.podSecurityContext) }}
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 10002
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (.Values.worker.nodeSelector | default .Values.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (.Values.worker.tolerations | default .Values.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (.Values.worker.affinity | default .Values.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: worker
           image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
@@ -25,5 +65,12 @@ spec:
             {{- if .Values.secrets }}
             - secretRef: { name: app-secret }
             {{- end }}
+          {{- with (.Values.worker.containerSecurityContext | default .Values.containerSecurityContext) }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.worker.resources }}
           resources:
-            {{- toYaml .Values.worker.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+

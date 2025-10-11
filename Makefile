@@ -211,21 +211,22 @@ HELM_NAME ?= app
 HELM_DIR  ?= deploy/helm/api
 HELM_NS   ?= october
 
-helm-lint: ## Helm lint
-	helm lint $(HELM_DIR)
+helm-lint: ## Helm lint (strict) 
+	helm lint $(HELM_DIR) --strict
 
-helm-template-dev: ## Render templates (dev)
+helm-template-dev: ## Render templates (dev, validate)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
 	helm template $(HELM_NAME) $(HELM_DIR) \
 	  --namespace $(HELM_NS) \
 	  -f $(HELM_DIR)/values.yaml \
 	  -f $(HELM_DIR)/values-dev.yaml \
-	  --set api.ingress.host=$$HOST | sed -n '1,200p'
+	  --set api.ingress.host=$$HOST \
+		--debug --validate | sed -n '1,200p'
 
 helm-up-dev: ## Upgrade/Install dev (Minikube)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
 	helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
-	  --namespace $(HELM_NS) \
+	  --namespace $(HELM_NS) --create-namespace \
 	  -f $(HELM_DIR)/values.yaml \
 	  -f $(HELM_DIR)/values-dev.yaml \
 	  --set api.ingress.host=$$HOST
