@@ -1,0 +1,33 @@
+name: Helm Lint & Template
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/helm/api/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'deploy/helm/api/**'
+
+jobs:
+  helm-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Helm Lint (strict)
+        run: helm lint deploy/helm/api --strict
+
+      - name: Helm Template (validate)
+        run: |
+          helm template app deploy/helm/api \
+            -f deploy/helm/api/values.yaml \
+            -f deploy/helm/api/values-dev.yaml \
+            --set api.ingress.host="api.127.0.0.1.nip.io" \
+            --debug --validate | head -n 200
