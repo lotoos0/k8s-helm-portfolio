@@ -1,7 +1,7 @@
 # ---------- Builder --------------
 FROM python:3.11-slim AS builder
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK_1 \
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
@@ -36,3 +36,4 @@ USER worker
 
 #opt
 CMD ["celery", "-A", "worker.app.celery_app.app", "worker", "-l", "info", "--concurrency=1"]
+

@@ -81,7 +81,7 @@ spec:
             failureThreshold: 3
           livenessProbe:
             httpGet: { path: /healthz, port: http }
-            initialDelaySeconds: 10
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 3

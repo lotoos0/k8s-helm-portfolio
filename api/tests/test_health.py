@@ -20,4 +20,4 @@ def test_metrics_exposes_text():
     r = client.get("/metrics")
     assert r.status_code == 200
     # Prometheus exposition format (text/plain)
-    assert "python_info" in r.text or "process_start_time_secounds" in r.text
+    assert "python_info" in r.text or "process_start_time_seconds" in r.text
