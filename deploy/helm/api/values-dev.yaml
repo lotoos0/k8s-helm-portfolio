@@ -1,5 +1,7 @@
 namespace: october
 api:
+  podLabels:
+    commit-sha: "dev-1234"
   image:
     repository: october-api
     tag: dev

@@ -233,3 +233,19 @@ helm-up-dev: ## Upgrade/Install dev (Minikube)
 
 helm-del: ## Uninstall release
 	helm uninstall $(HELM_NAME) -n $(HELM_NS) || true
+
+helm-history: ## Show release history 
+	helm history $(HELM_NAME) -n $(HELM_NS) || true
+
+helm-diff-dev: ## Show diff vs current (dev)
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	helm diff upgrade --allow-unreleased $(HELM_NAME) $(HELM_DIR) \
+		-n $(HELM_NS) \
+		-f $(HELM_DIR)/values.yaml \
+		-f $(HELM_DIR)/values-dev.yaml \
+		--set api.ingress.host=$$HOST || true
+
+helm-rollback: ## Rollback to a given REV (use: make helm-rollback REV=2)
+	@if [ -z "$(REV)" ]; then echo "Usage: make helm-rollback REV=<revision>"; exit 1; fi
+	helm rollback $(HELM_NAME) $(REV) -n $(HELM_NS)
+	helm history $(HELM_NAME) -n $(HELM_NS)

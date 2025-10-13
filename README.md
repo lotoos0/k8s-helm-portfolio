@@ -110,6 +110,25 @@ helm rollback app <REV> -n october
 
 ```
 
+### Upgrades & Rollbacks
+
+```bash
+# Preview changes
+make helm-diff-dev
+
+# Upgrade
+make helm-up-dev
+kubectl -n october rollout status deploy/api
+
+# Rollback
+make helm-history
+make helm-rollback REV=<number>
+
+# Notes:
+- Use `helm diff` before every upgrade
+- Keep image tags immutable.
+```
+
 The Helm chart (`deploy/helm/api`) includes API, Redis, Worker, Ingress, and HPA in a single release.
 
 **Environment-specific values:**
