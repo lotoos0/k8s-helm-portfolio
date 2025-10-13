@@ -162,7 +162,7 @@ Run `make help` for a list. Highlights:
 - **K8s (Redis + Worker):** `k8s-apply-redis`, `k8s-build-load-worker`, `k8s-apply-worker`, `k8s-logs-worker`, `k8s-exec-worker-ping`, `k8s-exec-worker-add`
 - **Ingress:** `k8s-enable-ingress`, `k8s-apply-ingress`, `k8s-delete-ingress`, `k8s-curl-ingress`, `k8s-open-ingress`
 - **HPA:** `k8s-enable-metrics`, `k8s-apply-hpa`, `k8s-hpa-status`, `k8s-top`, `load-test`
-- **Helm:** `helm-lint`, `helm-template-dev`, `helm-up-dev`, `helm-del`
+- **Helm:** `helm-lint`, `helm-template-dev`, `helm-up-dev`, `helm-del`, `helm-diff-dev`, `helm-history`, `helm-rollback`
 
 ## Roadmap (Milestones)
 
