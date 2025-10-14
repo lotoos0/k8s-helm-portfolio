@@ -1,0 +1,95 @@
+USER-SUPPLIED VALUES:
+affinity: {}
+api:
+  affinity: {}
+  containerSecurityContext: {}
+  hpa:
+    enabled: true
+    maxReplicas: 5
+    minReplicas: 1
+    targetCPU: 60
+  image:
+    repository: october-api
+    tag: dev
+  ingress:
+    className: nginx
+    enabled: true
+    host: api.192.168.49.2.nip.io
+    path: /(.*)
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels:
+    commit-sha: dev-1234
+  podSecurityContext: {}
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  service:
+    port: 80
+    type: ClusterIP
+  tolerations: []
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+env:
+  APP_ENV: dev
+  APP_NAME: DevOps October API
+  BROKER_URL: redis://redis:6379/0
+  PORT: "8000"
+  RESULT_BACKEND: redis://redis:6379/1
+imagePullPolicy: IfNotPresent
+imagePullSecrets: []
+namespace: october
+nodeSelector: {}
+podAnnotations:
+  prometheus.io/path: /metrics
+  prometheus.io/port: "8000"
+  prometheus.io/scrape: "true"
+podLabels: {}
+podSecurityContext:
+  fsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+redis:
+  enabled: true
+  image: redis:7-alpine
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  storage: 1Gi
+secrets: {}
+serviceAccount:
+  create: true
+  name: ""
+tolerations: []
+worker:
+  affinity: {}
+  containerSecurityContext: {}
+  image:
+    repository: october-worker
+    tag: dev
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  tolerations: []

@@ -1,0 +1,297 @@
+---
+# Source: app/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-app
+  namespace: october
+  labels:
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+---
+# Source: app/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: october
+data:
+  APP_ENV: "dev"
+  APP_NAME: "DevOps October API"
+  BROKER_URL: "redis://redis:6379/0"
+  PORT: "8000"
+  RESULT_BACKEND: "redis://redis:6379/1"
+---
+# Source: app/templates/pvc-redis.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: october
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Source: app/templates/deployment-redis.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: october
+  labels: { app: redis }
+spec:
+  type: ClusterIP
+  selector: { app: redis }
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+# Source: app/templates/service-api.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: october
+  labels:
+    app: api
+spec:
+  type: ClusterIP
+  selector: { app: api }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Source: app/templates/deployment-api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: october
+  labels:
+    app: api
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+      app.kubernetes.io/name: app
+      app.kubernetes.io/instance: app
+  template:
+    metadata:
+      labels:
+        app: api
+        app.kubernetes.io/name: app
+        app.kubernetes.io/instance: app
+        app.kubernetes.io/version: 0.1.0
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: app
+        helm.sh/chart: app-0.1.0
+        commit-sha: dev-1234
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: app-app
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: api
+          image: "october-api:dev"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef: { name: app-config }
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            failureThreshold: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+          resources:
+            limits:
+              cpu: 300m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: app/templates/deployment-redis.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: october
+  labels: { app: redis }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - name: redis
+              containerPort: 6379
+          args: ["--appendonly", "no", "--save", ""]
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+# Source: app/templates/deployment-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: october
+  labels:
+    app: worker
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+      app.kubernetes.io/name: app
+      app.kubernetes.io/instance: app
+  template:
+    metadata:
+      labels:
+        app: worker
+        app.kubernetes.io/name: app
+        app.kubernetes.io/instance: app
+        app.kubernetes.io/version: 0.1.0
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: app
+        helm.sh/chart: app-0.1.0
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: app-app
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: worker
+          image: "october-worker:dev"
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: app-config }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+          resources:
+            limits:
+              cpu: 300m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: app/templates/hpa-api.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: october
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+---
+# Source: app/templates/ingress-api.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  namespace: october
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.192.168.49.2.nip.io
+      http:
+        paths:
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+

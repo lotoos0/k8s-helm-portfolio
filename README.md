@@ -10,23 +10,48 @@ A small two-service demo (FastAPI **API** + Celery **worker** with Redis) built:
 
 - Observability (Prometheus + Grafana, alerts)
 
-## Architecture (current state)
+## Architecture (ASCII)
 
 ```
-[Client] --> [Ingress (NGINX)] --> [API (FastAPI)]
-                                    | /healthz /ready /metrics
-                                    |
-                                    (K8s: Deployment + Service + HPA)
-                                    |
-                                    [Redis (PVC + Service)]
-                                    |
-                                    [Worker (Celery)]
-                                    | Tasks: ping(), add()
-                                    |
-                                    [Minikube cluster]
+                 ┌───────────────────────┐
+Client ──HTTP──► │  Ingress (NGINX, K8s) │  host: api.<minikube-ip>.nip.io
+                 └──────────┬────────────┘
+                            │
+                       ┌────▼────┐          ┌───────────────────┐
+                       │ Service │─────────►│   Deployment API  │
+                       │  api    │          │  (FastAPI + /metrics)
+                       └────┬────┘          └───────────────────┘
+                            │
+                            │  Celery (broker/backend)
+                            ▼
+                     ┌──────────────┐      ┌───────────────────┐
+                     │  Service     │─────►│ Deployment Worker │
+                     │   redis      │      │  (Celery)         │
+                     └──────┬───────┘      └───────────────────┘
+                            │
+                            ▼
+                      ┌───────────┐
+                      │ PVC/data  │
+                      └───────────┘
 ```
 
 > Coming up: CI/CD, Prometheus/Grafana.
+
+## Repo Layout (Now)
+
+```
+api/                     # FastAPI app (+ tests, lint)
+worker/                  # Celery tasks
+deploy/
+  helm/
+    api/                 # <—— SOURCE OF TRUTH (Helm chart)
+scripts/                 # tools (load tester etc.)
+docs/                    # runbooks, checklists, release artifacts
+docker-compose.yml
+Makefile
+```
+
+> **Note:** `deploy/k8s-examples/` contains raw K8s manifests for educational reference only.
 
 ## Quickstart
 
@@ -136,8 +161,9 @@ The Helm chart (`deploy/helm/api`) includes API, Redis, Worker, Ingress, and HPA
 - **`values-dev.yaml`**: Local dev (Minikube) — single replicas, local images (`:dev` tag), nip.io ingress
 - **`values-prod.yaml`**: Production — 2+ replicas, HPA enabled, versioned images from registry (`:0.1.0`), real domain
 
-> **Note:** Helm deployment replaces manual K8s YAML management from `deploy/k8s/`.
-> Use `make k8s-*` targets for raw manifests or `make helm-*` for Helm-based workflow.
+> **Note:** For **production and development** deployments, always use **Helm** (`make helm-*`).
+> The `deploy/k8s-examples/` directory contains raw Kubernetes manifests for **educational purposes only**.
+> Raw manifest commands (`make k8s-*`) are useful for learning Kubernetes concepts, but should **not** be used for production deployments.
 
 ## Health & Probes
 
@@ -164,6 +190,26 @@ Run `make help` for a list. Highlights:
 - **HPA:** `k8s-enable-metrics`, `k8s-apply-hpa`, `k8s-hpa-status`, `k8s-top`, `load-test`
 - **Helm:** `helm-lint`, `helm-template-dev`, `helm-up-dev`, `helm-del`, `helm-diff-dev`, `helm-history`, `helm-rollback`
 
+## Common Commands
+
+### Helm (dev on Minikube)
+
+```bash
+make helm-lint
+make helm-template-dev
+make k8s-enable-ingress
+make helm-up-dev
+IP=$(minikube ip); curl -s http://api.$IP.nip.io/healthz
+```
+
+### Upgrade preview & rollback
+
+```bash
+make helm-diff-dev
+make helm-history
+make helm-rollback REV=<number>
+```
+
 ## Roadmap (Milestones)
 
 - **M1 (by Oct 09):** Containerized stack (FastAPI + Celery worker + Redis) deployed to Minikube.
@@ -173,9 +219,16 @@ Run `make help` for a list. Highlights:
   with automated E2E smoke test after deployment.
 - **M4 (by Oct 23):** Observability – Prometheus + Grafana + Alertmanager with 2 alerts (CrashLoop, CPU >80%)  
   and dashboards for RPS, latency, and error rates.
-- **M5 (by Oct 31):** Production readiness & release polish – Redis backup/restore script,  
-  prod configuration, chaos testing, final README (EN) with cost analysis and diagrams.  
+- **M5 (by Oct 31):** Production readiness & release polish – Redis backup/restore script,
+  prod configuration, chaos testing, final README (EN) with cost analysis and diagrams.
   📦 **Release v0.1.0**
+
+## What's Next (M3: CI/CD)
+
+- Build & push images (GHCR/DockerHub) with semver tags
+- Trivy scan (fail on HIGH/CRITICAL vulnerabilities)
+- Deploy job using `helm upgrade --install --atomic`
+- E2E smoke test after deployment (curl `/healthz` through Ingress/port-forward)
 
 ## Security Notes (WIP)
 

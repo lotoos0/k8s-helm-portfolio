@@ -6,7 +6,7 @@ PIP := $(VENV)/bin/pip
 PYTHON := $(VENV)/bin/python
 
 help: ## Show help for targets
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' | sort
 
 venv: ## Create virtualenv
 	@test -d $(VENV) || $(PY) -m venv $(VENV)

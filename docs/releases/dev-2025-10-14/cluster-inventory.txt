@@ -1,0 +1,17 @@
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES               SELECTOR
+deployment.apps/api      1/1     1            1           3d2h   api          october-api:dev      app=api,app.kubernetes.io/instance=app,app.kubernetes.io/name=app
+deployment.apps/redis    1/1     1            1           3d2h   redis        redis:7-alpine       app=redis
+deployment.apps/worker   1/1     1            1           3d2h   worker       october-worker:dev   app=worker,app.kubernetes.io/instance=app,app.kubernetes.io/name=app
+
+NAME            TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE    SELECTOR
+service/api     ClusterIP   10.106.199.228   <none>        80/TCP     3d2h   app=api
+service/redis   ClusterIP   10.102.21.121    <none>        6379/TCP   3d2h   app=redis
+
+NAME                            CLASS   HOSTS                     ADDRESS        PORTS   AGE
+ingress.networking.k8s.io/api   nginx   api.192.168.49.2.nip.io   192.168.49.2   80      3d2h
+
+NAME                                      REFERENCE        TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/api   Deployment/api   cpu: 6%/60%   1         5         1          4d
+
+NAME                               STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE   VOLUMEMODE
+persistentvolumeclaim/redis-data   Bound    pvc-033ce902-609f-4034-a442-9cad151a49b5   1Gi        RWO            standard       <unset>                 4d    Filesystem
