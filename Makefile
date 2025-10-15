@@ -249,3 +249,16 @@ helm-rollback: ## Rollback to a given REV (use: make helm-rollback REV=2)
 	@if [ -z "$(REV)" ]; then echo "Usage: make helm-rollback REV=<revision>"; exit 1; fi
 	helm rollback $(HELM_NAME) $(REV) -n $(HELM_NS)
 	helm history $(HELM_NAME) -n $(HELM_NS)
+
+
+ci-python: ## Local: lint + format-check + tests
+	$(VENV)/bin/ruff check api
+	$(VENV)/bin/black --check api
+	$(VENV)/bin/pytest -q --cov=api --cov-report=term-missing
+
+ci-docker: ## Local: build API & worker (no push)
+	docker build -t october-api:ci ./api
+	docker build -t october-worker:ci ./worker 
+
+ci-all: ## Local: run all CI steps
+	make ci-python && make ci-docker
