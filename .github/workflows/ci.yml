@@ -1,0 +1,75 @@
+# Minimal CI pipeline: static analysis, unit tests, and Docker image builds
+# Runs on PR (only when relevant paths change) and on push to main
+name: CI (lint + test + build)
+on:
+  pull_request:
+    # Only trigger when code, config, or workflow itself changes
+    paths:
+      - "api/**"
+      - "worker/**"
+      - "deploy/helm/api/**"
+      - "Makefile"
+      - ".github/workflows/**"
+  push:
+    branches: ["main"]
+jobs:
+  # Job 1: Static analysis (ruff, black) + unit tests with coverage
+  python-tests:
+    name: Lint & Test (API)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Cache pip packages to speed up subsequent runs
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('api/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install deps (API + dev)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt
+      - name: Ruff (lint)
+        run: ruff check api
+      - name: Black (check)
+        run: black --check api
+      - name: Pytest (coverage)
+        run: pytest -q --cov=api --cov-report=term-missing
+        env:
+          PYTHONPATH: .
+  # Job 2: Build Docker images for api and worker (no push, validation only)
+  docker-build:
+    name: Docker Build (${{ matrix.svc }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Continue building other services even if one fails
+      fail-fast: false
+      matrix:
+        svc: ["api", "worker"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v6
+      - name: Build (no push) with cache
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.svc }}
+          file: ./${{ matrix.svc }}/Dockerfile
+          push: false
+          tags: ${{ matrix.svc == 'api' && 'october-api:ci' || 'october-worker:ci' }}
+          # GitHub Actions cache speeds up subsequent builds (mode=max caches all layers)
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
