@@ -281,4 +281,4 @@ push-worker: ## Build & push Worker (tags: dev, sha-<short>)
 	docker push $(WORKER_IMAGE):sha-$(SHA)
 
 push-all: ## Push both images
-	make push-api && make push-worker 
+	make push-api && make push-worker

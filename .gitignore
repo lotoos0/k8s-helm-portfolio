@@ -18,6 +18,7 @@ TODO.md
 # Editors
 .vscode/
 .idea/
+PLAN_OCT.md
 
 # Build
 dist/
