@@ -47,29 +47,76 @@ jobs:
         run: pytest -q --cov=api --cov-report=term-missing
         env:
           PYTHONPATH: .
-  # Job 2: Build Docker images for api and worker (no push, validation only)
-  docker-build:
-    name: Docker Build (${{ matrix.svc }})
+  # Job 2: Build and push Docker images for api and worker to registries
+  docker-build-push:
+    name: Docker Build & Push (${{ matrix.svc }})
     runs-on: ubuntu-latest
+    needs: [python-tests]
     strategy:
-      # Continue building other services even if one fails
       fail-fast: false
       matrix:
         svc: ["api", "worker"]
+        registry: ["ghcr", "dockerhub"]
+    env:
+      IMAGE_NAME_API_GHCR: ghcr.io/${{ github.repository_owner }}/october-api
+      IMAGE_NAME_WORKER_GHCR: ghcr.io/${{ github.repository_owner }}/october-worker
+      IMAGE_NAME_API_DH: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/october-api
+      IMAGE_NAME_WORKER_DH: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/october-worker
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v6
-      - name: Build (no push) with cache
+        uses: docker/setup-buildx-action@v3
+      # Login (registry switch)
+      - name: Login GHCR
+        if: matrix.registry == 'ghcr'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+      - name: Login DockerHub
+        if: matrix.registry == 'dockerhub'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Compute tags
+        id: meta
+        run: |
+          SHA_TAG=sha-${GITHUB_SHA::7}
+          if [[ "${{ matrix.svc }}" == "api" ]]; then
+            if [[ "${{ matrix.registry }}" == "ghcr" ]]; then
+              IMAGE="${{ env.IMAGE_NAME_API_GHCR }}"
+            else
+              IMAGE="${{ env.IMAGE_NAME_API_DH }}"
+            fi
+          else
+            if [[ "${{ matrix.registry }}" == "ghcr" ]]; then
+              IMAGE="${{ env.IMAGE_NAME_WORKER_GHCR }}"
+            else
+              IMAGE="${{ env.IMAGE_NAME_WORKER_DH }}"
+            fi
+          fi
+
+          TAGS="${IMAGE}:dev,${IMAGE}:${SHA_TAG}"
+          # If it's a git tag push, add semver tag
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            TAGS="${TAGS},${IMAGE}:${GITHUB_REF_NAME}"
+          fi
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+      - name: Build & Push
         uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.svc }}
           file: ./${{ matrix.svc }}/Dockerfile
-          push: false
-          tags: ${{ matrix.svc == 'api' && 'october-api:ci' || 'october-worker:ci' }}
-          # GitHub Actions cache speeds up subsequent builds (mode=max caches all layers)
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}

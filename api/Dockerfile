@@ -49,5 +49,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=20s --timeout=3s --retries=3 \
   CMD sh -c 'python -c "import urllib.request, sys; urllib.request.urlopen(\"http://127.0.0.1:8000/healthz\", timeout=2); sys.exit(0)" || exit 1'
 
+LABEL org.opencontainers.image.source="https://github.com/lotoos0/k8s-helm-portfolio" \
+  org.opencontainers.image.description="DevOps October demo service" \
+  org.opencontainers.image.licenses="MIT"
+
 # Command: uvicorn
 CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

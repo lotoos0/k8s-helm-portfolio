@@ -19,14 +19,14 @@ Client ──HTTP──► │  Ingress (NGINX, K8s) │  host: api.<minikube-ip
                             │
                        ┌────▼────┐          ┌───────────────────┐
                        │ Service │─────────►│   Deployment API  │
-                       │  api    │          │  (FastAPI + /metrics)
+                       │   api   │          │  (FastAPI + /metrics)
                        └────┬────┘          └───────────────────┘
                             │
                             │  Celery (broker/backend)
                             ▼
                      ┌──────────────┐      ┌───────────────────┐
-                     │  Service     │─────►│ Deployment Worker │
-                     │   redis      │      │  (Celery)         │
+                     │   Service    │─────►│ Deployment Worker │
+                     │    redis     │      │  (Celery)         │
                      └──────┬───────┘      └───────────────────┘
                             │
                             ▼
@@ -164,6 +164,21 @@ The Helm chart (`deploy/helm/api`) includes API, Redis, Worker, Ingress, and HPA
 > **Note:** For **production and development** deployments, always use **Helm** (`make helm-*`).
 > The `deploy/k8s-examples/` directory contains raw Kubernetes manifests for **educational purposes only**.
 > Raw manifest commands (`make k8s-*`) are useful for learning Kubernetes concepts, but should **not** be used for production deployments.
+
+### Registry & Image Tags
+
+- Registry: GHCR (`ghcr.io/<user>/october-api`, `october-worker`)
+- Tags:
+  - `:dev` — latest dev build
+  - `:sha-<short>` — immutable
+  - `:vX.Y.Z` — git tag release
+
+CI pushes on PR/main. To release:
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
 
 ## Health & Probes
 

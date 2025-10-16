@@ -262,3 +262,23 @@ ci-docker: ## Local: build API & worker (no push)
 
 ci-all: ## Local: run all CI steps
 	make ci-python && make ci-docker
+
+# ----- Registry push (local helper) -----
+REGISTRY ?= ghcr.io
+ORG ?= lotoos0
+API_IMAGE ?= $(REGISTRY)/$(ORG)/october-api
+WORKER_IMAGE ?= $(REGISTRY)/$(ORG)/october-worker
+SHA ?= $(shell git rev-parse --short HEAD)
+
+push-api: ## Build & push API (tags: dev, sha-<short>)
+	docker build -t $(API_IMAGE):dev -t $(API_IMAGE):sha-$(SHA) ./api
+	docker push $(API_IMAGE):dev
+	docker push $(API_IMAGE):sha-$(SHA)
+
+push-worker: ## Build & push Worker (tags: dev, sha-<short>)
+	docker build -t $(WORKER_IMAGE):dev -t $(WORKER_IMAGE):sha-$(SHA) ./worker
+	docker push $(WORKER_IMAGE):dev
+	docker push $(WORKER_IMAGE):sha-$(SHA)
+
+push-all: ## Push both images
+	make push-api && make push-worker 
