@@ -1,0 +1,32 @@
+# simple note for me: Ingress in Kind requires an additional setup controller 
+# – here we only make a “dry” deploy, without HTTP routing. It's a quick sanity check.
+name: CD (Kind dry-run cluster)
+on:
+  pull_request:
+    paths: ["deploy/helm/api/**", ".github/workflows/cd-kind.yml"]
+  workflow_dispatch: {}
+jobs:
+  kind-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with:
+          version: v0.23.0
+          wait: 90s
+      - uses: azure/setup-helm@v4
+        with: {version: v3.14.4}
+      - name: Helm Lint
+        run: helm lint deploy/helm/api --strict
+      - name: Helm Install to Kind
+        run: |
+          helm upgrade --install app deploy/helm/api \
+            -n october --create-namespace \
+            -f deploy/helm/api/values.yaml \
+            -f deploy/helm/api/values-dev.yaml \
+            --set api.ingress.host="api.127.0.0.1.nip.io" \
+            --set api.image.repository="ghcr.io/${{ github.repository_owner }}/october-api" \
+            --set api.image.tag="dev" \
+            --set worker.image.repository="ghcr.io/${{ github.repository_owner }}/october-worker" \
+            --set worker.image.tag="dev"
+          kubectl -n october get deploy,po,svc,ing

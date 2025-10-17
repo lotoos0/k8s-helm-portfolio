@@ -180,6 +180,18 @@ git tag -a v0.1.0 -m "v0.1.0"
 git push origin v0.1.0
 ```
 
+### CD to Dev (GitHub Actions)
+
+Secrets required:
+
+- `DEV_KUBECONFIG` – kubeconfig for dev cluster
+- `DEV_NAMESPACE` – e.g., october
+- `DEV_INGRESS_HOST` – e.g., api.<minikube-ip>.nip.io
+
+Deploy runs on push to `main`:
+
+- Lint → Template → Helm upgrade --install (images from GHCR `:dev` by default).
+
 ## Health & Probes
 
 - **/healthz** → liveness (process alive)

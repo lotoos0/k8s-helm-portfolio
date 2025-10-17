@@ -1,0 +1,81 @@
+name: CD (Helm to Dev)
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "deploy/helm/api/**"
+      - "api/**"
+      - "worker/**"
+      - ".github/workflows/cd.yml"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  packages: read
+env:
+  HELM_DIR: deploy/helm/api
+  RELEASE_NAME: app
+jobs:
+  cd-dev:
+    name: Helm Upgrade --install (Dev)
+    runs-on: ubuntu-latest
+    needs: [docker-build-push]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Write kubeconfig
+        id: kube
+        run: |
+          echo "${DEV_KUBECONFIG}" > kubeconfig
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+        env:
+          DEV_KUBECONFIG: ${{ secrets.DEV_KUBECONFIG }}
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+      - name: Kube context check
+        run: |
+          kubectl cluster-info
+          kubectl get ns
+      - name: Compute image refs
+        id: images
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          API_IMAGE="ghcr.io/${OWNER}/october-api"
+          WORKER_IMAGE="ghcr.io/${OWNER}/october-worker"
+          # domyślnie deployujemy tag :dev; możesz podmienić na sha-<7>
+          API_TAG="dev"
+          WORKER_TAG="dev"
+          echo "api_image=${API_IMAGE}" >> $GITHUB_OUTPUT
+          echo "worker_image=${WORKER_IMAGE}" >> $GITHUB_OUTPUT
+          echo "api_tag=${API_TAG}" >> $GITHUB_OUTPUT
+          echo "worker_tag=${WORKER_TAG}" >> $GITHUB_OUTPUT
+      - name: Helm Lint (strict)
+        run: helm lint $HELM_DIR --strict
+      - name: Helm Template (validate)
+        run: |
+          helm template $RELEASE_NAME $HELM_DIR \
+            -n "${{ secrets.DEV_NAMESPACE }}" \
+            -f $HELM_DIR/values.yaml \
+            -f $HELM_DIR/values-dev.yaml \
+            --set api.ingress.host="${{ secrets.DEV_INGRESS_HOST }}" \
+            --set api.image.repository=${{ steps.images.outputs.api_image }} \
+            --set api.image.tag=${{ steps.images.outputs.api_tag }} \
+            --set worker.image.repository=${{ steps.images.outputs.worker_image }} \
+            --set worker.image.tag=${{ steps.images.outputs.worker_tag }} \
+            --debug --validate | head -n 200
+      - name: Helm Upgrade --install (Dev)
+        run: |
+          helm upgrade --install $RELEASE_NAME $HELM_DIR \
+            -n "${{ secrets.DEV_NAMESPACE }}" --create-namespace \
+            -f $HELM_DIR/values.yaml \
+            -f $HELM_DIR/values-dev.yaml \
+            --set api.ingress.host="${{ secrets.DEV_INGRESS_HOST }}" \
+            --set api.image.repository=${{ steps.images.outputs.api_image }} \
+            --set api.image.tag=${{ steps.images.outputs.api_tag }} \
+            --set worker.image.repository=${{ steps.images.outputs.worker_image }} \
+            --set worker.image.tag=${{ steps.images.outputs.worker_tag }}
+      - name: Post-deploy status
+        run: |
+          kubectl -n "${{ secrets.DEV_NAMESPACE }}" get deploy,po,svc,ing,hpa
+          helm history $RELEASE_NAME -n "${{ secrets.DEV_NAMESPACE }}"

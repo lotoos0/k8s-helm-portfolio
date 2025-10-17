@@ -282,3 +282,19 @@ push-worker: ## Build & push Worker (tags: dev, sha-<short>)
 
 push-all: ## Push both images
 	make push-api && make push-worker
+
+# -------- CD local helper (uses provided kubeconfig file) ---------
+KUBECONFIG_PATH ?= $(HOME)/.kube/config
+DEV_NS ?= october
+DEV_HOST ?= api.localdev.invalid  # nadpisz przy wywołaniu
+
+cd-dev: ## Helm upgrade/install to dev using local kubeconfig (override DEV_HOST, images)
+	helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
+	  -n $(DEV_NS) --create-namespace \
+	  -f $(HELM_DIR)/values.yaml \
+	  -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=$(DEV_HOST) \
+	  --set api.image.repository=$(REGISTRY)/$(ORG)/october-api \
+	  --set api.image.tag=dev \
+	  --set worker.image.repository=$(REGISTRY)/$(ORG)/october-worker \
+	  --set worker.image.tag=dev
