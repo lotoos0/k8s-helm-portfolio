@@ -192,6 +192,12 @@ Deploy runs on push to `main`:
 
 - Lint → Template → Helm upgrade --install (images from GHCR `:dev` by default).
 
+**Local CD:**
+
+```bash
+make cd-dev DEV_HOST=api.$(minikube ip).nip.io
+```
+
 ## Health & Probes
 
 - **/healthz** → liveness (process alive)
