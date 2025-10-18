@@ -69,17 +69,6 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
-      # Debug: check env vars
-      - name: Debug registry config
-        run: |
-          echo "Registry: ${{ matrix.registry }}"
-          echo "Service: ${{ matrix.svc }}"
-          echo "GHCR API: ${{ env.IMAGE_NAME_API_GHCR }}"
-          echo "GHCR WORKER: ${{ env.IMAGE_NAME_WORKER_GHCR }}"
-          echo "DH API (masked): docker.io/***/${{ secrets.DOCKERHUB_USERNAME }}/october-api"
-          echo "DH username length: ${#DOCKERHUB_USERNAME}"
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       # Login (registry switch)
       - name: Login GHCR
         if: matrix.registry == 'ghcr'
@@ -98,6 +87,15 @@ jobs:
         id: meta
         run: |
           SHA_TAG=sha-${GITHUB_SHA::7}
+
+          # Check if DockerHub secrets are set when using dockerhub registry
+          if [[ "${{ matrix.registry }}" == "dockerhub" ]]; then
+            if [[ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]]; then
+              echo "::error::DOCKERHUB_USERNAME secret is not set. Skipping DockerHub build."
+              exit 0
+            fi
+          fi
+
           if [[ "${{ matrix.svc }}" == "api" ]]; then
             if [[ "${{ matrix.registry }}" == "ghcr" ]]; then
               IMAGE="${{ env.IMAGE_NAME_API_GHCR }}"
@@ -110,6 +108,12 @@ jobs:
             else
               IMAGE="${{ env.IMAGE_NAME_WORKER_DH }}"
             fi
+          fi
+
+          # Validate IMAGE format
+          if [[ -z "$IMAGE" || "$IMAGE" == *"//"* ]]; then
+            echo "::error::Invalid IMAGE format: $IMAGE"
+            exit 1
           fi
 
           TAGS="${IMAGE}:dev,${IMAGE}:${SHA_TAG}"
