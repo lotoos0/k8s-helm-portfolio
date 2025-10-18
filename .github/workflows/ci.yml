@@ -11,7 +11,7 @@ on:
       - "Makefile"
       - ".github/workflows/**"
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
 jobs:
   # Job 1: Static analysis (ruff, black) + unit tests with coverage
   python-tests:
