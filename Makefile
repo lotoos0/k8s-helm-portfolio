@@ -2,8 +2,9 @@
 
 PY ?= python3
 VENV ?= .venv
-PIP := $(VENV)/bin/pip
+PIP := $(VENV)/bin/pip/
 PYTHON := $(VENV)/bin/python
+SHELL := /bin/bash
 
 help: ## Show help for targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' | sort
@@ -132,22 +133,22 @@ k8s-enable-ingress: ## Enable NGINX ingress addon in Minikube
 
 k8s-apply-ingress: ## Apply API ingress with dynamic host api.<minikube-ip>.nip.io
 	@IP=$$(minikube ip); \
-	HOST=api.$$IP.nip.io; \
-	echo "Using host: $$HOST"; \
-	cat deploy/k8s/ingress-api.yaml | sed "s/api\.[0-9.]*\.nip\.io/$$HOST/g" | kubectl apply -f -
+	  HOST=api.$$IP.nip.io; \
+	  echo "Using host: $$HOST"; \
+	  cat deploy/k8s/ingress-api.yaml | sed "s/api\.[0-9.]*\.nip\.io/$$HOST/g" | kubectl apply -f -
 
 k8s-delete-ingress: ## Delete API ingress (host-insensitive)
 	- kubectl -n $(KNS) delete ingress/api --ignore-not-found
 
 k8s-curl-ingress: ## Curl ingress /healthz
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
-	echo "GET http://$$HOST/healthz"; \
-	curl -sS --max-time 5 http://$$HOST/healthz | jq .
+	  echo "GET http://$$HOST/healthz"; \
+	  curl -sS --max-time 5 http://$$HOST/healthz | jq .
 
 k8s-open-ingress: ## Open in browser (Linux xdg-open/mac open)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; URL=http://$$HOST/healthz; \
-	echo $$URL; \
-	( command -v xdg-open >/dev/null && xdg-open $$URL ) || ( command -v open >/dev/null && open $$URL ) || true
+	  echo $$URL; \
+	  ( command -v xdg-open >/dev/null && xdg-open $$URL ) || ( command -v open >/dev/null && open $$URL ) || true
 
 # ----- Metrics server / HPA ----------
 k8s-enable-metrics: ## Enable metrics-server in Minikube
@@ -216,20 +217,20 @@ helm-lint: ## Helm lint (strict)
 
 helm-template-dev: ## Render templates (dev, validate)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
-	helm template $(HELM_NAME) $(HELM_DIR) \
-	  --namespace $(HELM_NS) \
-	  -f $(HELM_DIR)/values.yaml \
-	  -f $(HELM_DIR)/values-dev.yaml \
-	  --set api.ingress.host=$$HOST \
-		--debug --validate | sed -n '1,200p'
+	  helm template $(HELM_NAME) $(HELM_DIR) \
+	    --namespace $(HELM_NS) \
+	    -f $(HELM_DIR)/values.yaml \
+	    -f $(HELM_DIR)/values-dev.yaml \
+	    --set api.ingress.host=$$HOST \
+	    --debug --validate | sed -n '1,200p'
 
 helm-up-dev: ## Upgrade/Install dev (Minikube)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
-	helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
-	  --namespace $(HELM_NS) --create-namespace \
-	  -f $(HELM_DIR)/values.yaml \
-	  -f $(HELM_DIR)/values-dev.yaml \
-	  --set api.ingress.host=$$HOST
+	  helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
+	    --namespace $(HELM_NS) --create-namespace \
+	    -f $(HELM_DIR)/values.yaml \
+	    -f $(HELM_DIR)/values-dev.yaml \
+	    --set api.ingress.host=$$HOST
 
 helm-del: ## Uninstall release
 	helm uninstall $(HELM_NAME) -n $(HELM_NS) || true
@@ -239,11 +240,11 @@ helm-history: ## Show release history
 
 helm-diff-dev: ## Show diff vs current (dev)
 	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
-	helm diff upgrade --allow-unreleased $(HELM_NAME) $(HELM_DIR) \
-		-n $(HELM_NS) \
-		-f $(HELM_DIR)/values.yaml \
-		-f $(HELM_DIR)/values-dev.yaml \
-		--set api.ingress.host=$$HOST || true
+	  helm diff upgrade --allow-unreleased $(HELM_NAME) $(HELM_DIR) \
+	    -n $(HELM_NS) \
+	    -f $(HELM_DIR)/values.yaml \
+	    -f $(HELM_DIR)/values-dev.yaml \
+	    --set api.ingress.host=$$HOST || true
 
 helm-rollback: ## Rollback to a given REV (use: make helm-rollback REV=2)
 	@if [ -z "$(REV)" ]; then echo "Usage: make helm-rollback REV=<revision>"; exit 1; fi
@@ -269,6 +270,8 @@ ORG ?= lotoos0
 API_IMAGE ?= $(REGISTRY)/$(ORG)/october-api
 WORKER_IMAGE ?= $(REGISTRY)/$(ORG)/october-worker
 SHA ?= $(shell git rev-parse --short HEAD)
+API_TAG ?= dev
+WORKER_TAG ?= dev
 
 push-api: ## Build & push API (tags: dev, sha-<short>)
 	docker build -t $(API_IMAGE):dev -t $(API_IMAGE):sha-$(SHA) ./api
@@ -298,3 +301,29 @@ cd-dev: ## Helm upgrade/install to dev using local kubeconfig (override DEV_HOST
 	  --set api.image.tag=dev \
 	  --set worker.image.repository=$(REGISTRY)/$(ORG)/october-worker \
 	  --set worker.image.tag=dev
+
+helm-up-dev-atomic: ## Helm upgrade/install (atomic, timeout)
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	  helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
+	    -n $(HELM_NS) --create-namespace \
+	    -f $(HELM_DIR)/values.yaml -f $(HELM_DIR)/values-dev.yaml \
+	    --set api.ingress.host=$$HOST \
+	    --atomic --timeout 5m --history-max 10 
+
+helm-rollback-last: ## Rollback to previous revision
+	@REV=$$(helm history $(HELM_NAME) -n $(HELM_NS) | awk 'NR==2{print $$1}'); \
+	  echo "Rolling back to $$REV"; \
+	  helm rollback $(HELM_NAME) $$REV -n $(HELM_NS); \
+	  helm history $(HELM_NAME) -n $(HELM_NS)
+
+cd-dev-atomic: ## Local CD (atomic) with images from GHCR (override ORG/REGISTRY/TAGS)
+	@IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	  helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
+	    -n $(HELM_NS) --create-namespace \
+	    -f $(HELM_DIR)/values.yaml -f $(HELM_DIR)/values-dev.yaml \
+	    --set api.ingress.host=$$HOST \
+	    --set api.image.repository=$(REGISTRY)/$(ORG)/october-api \
+	    --set api.image.tag=$(API_TAG) \
+	    --set worker.image.repository=$(REGISTRY)/$(ORG)/october-worker \
+	    --set worker.image.tag=$(WORKER_TAG) \
+	    --atomic --timeout 5m --history-max 10

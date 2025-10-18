@@ -1,12 +1,9 @@
 name: CD (Helm to Dev)
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "deploy/helm/api/**"
-      - "api/**"
-      - "worker/**"
-      - ".github/workflows/cd.yml"
+  workflow_run:
+    workflows: ["CI (lint + test + build)"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -15,9 +12,53 @@ env:
   HELM_DIR: deploy/helm/api
   RELEASE_NAME: app
 jobs:
+  trivy-fs:
+    name: Trivy FS (repo/Dockerfiles)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache trivy db
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-${{ hashFiles('**/*') }}
+          restore-keys: |
+            ${{ runner.os }}-trivy-
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scanners: "vuln,secret,misconfig"
+          ignore-unfixed: true
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+  trivy-image:
+    name: Trivy Image (GHCR dev tags)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache trivy db
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-db
+      - name: Trivy scan API image
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/october-api:dev
+          severity: "HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Trivy scan WORKER image
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/october-worker:dev
+          severity: "HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
   cd-dev:
     name: Helm Upgrade --install (Dev)
     runs-on: ubuntu-latest
+    needs: [trivy-fs, trivy-image]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,18 +104,34 @@ jobs:
             --set worker.image.repository=${{ steps.images.outputs.worker_image }} \
             --set worker.image.tag=${{ steps.images.outputs.worker_tag }} \
             --debug --validate | head -n 200
-      - name: Helm Upgrade --install (Dev)
+      - name: Helm Upgrade --install (atomic + retry)
         run: |
-          helm upgrade --install $RELEASE_NAME $HELM_DIR \
-            -n "${{ secrets.DEV_NAMESPACE }}" --create-namespace \
-            -f $HELM_DIR/values.yaml \
-            -f $HELM_DIR/values-dev.yaml \
-            --set api.ingress.host="${{ secrets.DEV_INGRESS_HOST }}" \
-            --set api.image.repository=${{ steps.images.outputs.api_image }} \
-            --set api.image.tag=${{ steps.images.outputs.api_tag }} \
-            --set worker.image.repository=${{ steps.images.outputs.worker_image }} \
-            --set worker.image.tag=${{ steps.images.outputs.worker_tag }}
+          set -e
+          ATTEMPTS=3
+          for i in $(seq 1 $ATTEMPTS); do
+            echo "::group::Attempt $i/$ATTEMPTS"
+            set +e
+            helm upgrade --install app $HELM_DIR \
+              -n "${{ secrets.DEV_NAMESPACE }}" --create-namespace \
+              -f $HELM_DIR/values.yaml -f $HELM_DIR/values-dev.yaml \
+              --set api.ingress.host="${{ secrets.DEV_INGRESS_HOST }}" \
+              --set api.image.repository=${{ steps.images.outputs.api_image }} \
+              --set api.image.tag=${{ steps.images.outputs.api_tag }} \
+              --set worker.image.repository=${{ steps.images.outputs.worker_image }} \
+              --set worker.image.tag=${{ steps.images.outputs.worker_tag }} \
+              --atomic --timeout 5m --history-max 10
+            RC=$?
+            set -e
+            echo "::endgroup::"
+            if [ $RC -eq 0 ]; then
+              echo "Deploy succeeded on attempt $i"; break
+            fi
+            if [ $i -eq $ATTEMPTS ]; then
+              echo "Deploy failed after $ATTEMPTS attempts"; exit 1
+            fi
+            echo "Retrying in 15s..."; sleep 15
+          done
       - name: Post-deploy status
         run: |
           kubectl -n "${{ secrets.DEV_NAMESPACE }}" get deploy,po,svc,ing,hpa
-          helm history $RELEASE_NAME -n "${{ secrets.DEV_NAMESPACE }}"
+          helm history app -n "${{ secrets.DEV_NAMESPACE }}"
