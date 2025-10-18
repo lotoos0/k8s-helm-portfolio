@@ -69,6 +69,17 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+      # Debug: check env vars
+      - name: Debug registry config
+        run: |
+          echo "Registry: ${{ matrix.registry }}"
+          echo "Service: ${{ matrix.svc }}"
+          echo "GHCR API: ${{ env.IMAGE_NAME_API_GHCR }}"
+          echo "GHCR WORKER: ${{ env.IMAGE_NAME_WORKER_GHCR }}"
+          echo "DH API (masked): docker.io/***/${{ secrets.DOCKERHUB_USERNAME }}/october-api"
+          echo "DH username length: ${#DOCKERHUB_USERNAME}"
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       # Login (registry switch)
       - name: Login GHCR
         if: matrix.registry == 'ghcr'
