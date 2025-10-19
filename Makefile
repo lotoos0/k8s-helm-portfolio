@@ -5,6 +5,7 @@ VENV ?= .venv
 PIP := $(VENV)/bin/pip/
 PYTHON := $(VENV)/bin/python
 SHELL := /bin/bash
+NS ?= $(HELM_NS)
 
 help: ## Show help for targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' | sort
@@ -327,3 +328,15 @@ cd-dev-atomic: ## Local CD (atomic) with images from GHCR (override ORG/REGISTRY
 	    --set worker.image.repository=$(REGISTRY)/$(ORG)/october-worker \
 	    --set worker.image.tag=$(WORKER_TAG) \
 	    --atomic --timeout 5m --history-max 10
+
+smoke-ci: ## Run E2E smoke (Ingerss) using scripts/smoke.sh; override HOST=...
+	@if [ -z "$(HOST)" ]; then echo "Usage: make smoke-ci HOST=api.<minikube-ip>.nip.io"; exit 2; fi
+	./scripts/smoke.sh "$(HOST)"
+
+smoke-pf: ## Run E2E via port-forward (local fallback)
+	@echo "Port-forwarding svc/api -> :8080 (namespace $(NS))"
+	(kubectl -n $(NS) port-forward svc/api 8080:80 >/dev/null 2>&1 & echo $$! > .pf.pid)
+	sleep 2
+	./scripts/smoke.sh "localhost:8080"; RC=$$?
+	@if [ -f .pf.pid ]; then kill $$(cat .pf.pid) || true; rm .pf.pid; fi
+	@exit $$RC

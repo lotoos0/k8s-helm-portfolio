@@ -135,3 +135,61 @@ jobs:
         run: |
           kubectl -n "${{ secrets.DEV_NAMESPACE }}" get deploy,po,svc,ing,hpa
           helm history app -n "${{ secrets.DEV_NAMESPACE }}"
+      - name: E2E Smoke via Ingress
+        id: smoke
+        run: |
+          echo "HOST=${{ secrets.DEV_INGRESS_HOST }}"
+          ./scripts/smoke.sh "${{ secrets.DEV_INGRESS_HOST }}"
+      - name: Fallback smoke via port-forward (if ingress fails)
+        if: failure()
+        run: |
+          NS="${{ secrets.DEV_NAMESPACE }}"
+          set -m
+          kubectl -n "$NS" port-forward svc/api 8080:80 >/dev/null 2>&1 &
+          PF_PID=$!
+          sleep 2
+          set +e
+          ./scripts/smoke.sh "localhost:8080"
+          RC=$?
+          kill $PF_PID || true
+          set -e
+          if [ $RC -ne 0 ]; then
+            echo "Port-forward fallback also failed."
+            exit 1
+          fi
+      - name: Collect diagnostics (on failure)
+        if: failure()
+        run: |
+          NS="${{ secrets.DEV_NAMESPACE }}"
+          mkdir -p diag
+          kubectl -n "$NS" get deploy,po,svc,ing,hpa -o wide > diag/get-wide.txt || true
+          kubectl -n "$NS" describe deploy api > diag/describe-deploy-api.txt || true
+          kubectl -n "$NS" describe po -l app=api > diag/describe-po-api.txt || true
+          kubectl -n "$NS" logs -l app=api --tail=200 > diag/logs-api.txt || true
+          kubectl -n "$NS" logs -l app=worker --tail=200 > diag/logs-worker.txt || true
+          helm get values app -n "$NS" > diag/helm-values.txt || true
+          helm get manifest app -n "$NS" > diag/helm-manifest.txt || true
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diag-${{ github.run_id }}
+          path: diag
+      - name: Install jq
+        if: always()
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Auto-rollback to previous revision
+        if: failure()
+        run: |
+          NS="${{ secrets.DEV_NAMESPACE }}"
+          set -e
+          echo "History:"
+          helm history app -n "$NS" || true
+          PREV=$(helm history app -n "$NS" --output json | jq '.[1].revision // 0')
+          if [ "$PREV" -gt 0 ]; then
+            echo "Rolling back to revision $PREV"
+            helm rollback app "$PREV" -n "$NS"
+            kubectl -n "$NS" rollout status deploy/api || true
+          else
+            echo "No previous revision to rollback to."
+          fi
