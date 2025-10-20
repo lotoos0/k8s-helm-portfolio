@@ -1,14 +1,67 @@
 # October DevOps – K8s + Helm + CI/CD + Observability
 
-A small two-service demo (FastAPI **API** + Celery **worker** with Redis) built:
+[![Milestone](https://img.shields.io/badge/Milestone-M3%20Complete-success)](docs/INDEX.md)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](docs/ARCHITECTURE.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
 
-- Docker & Compose
+A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
-- Kubernetes (manifests → Helm)
+- 🐳 **Docker & Compose** – Containerized microservices
+- ☸️ **Kubernetes** – Production-ready orchestration (manifests → Helm)
+- 🚀 **CI/CD** – Automated build → test → scan → deploy with E2E smoke tests
+- 📊 **Observability** – Prometheus + Grafana + Alertmanager (M4 in progress)
 
-- CI/CD (build, test, scan, deploy, E2E smoke)
+---
 
-- Observability (Prometheus + Grafana, alerts)
+## 📚 Documentation
+
+**[📍 START HERE: Complete Documentation Index](docs/INDEX.md)**
+
+| Document | Description |
+|----------|-------------|
+| **[🏗️ Architecture](docs/ARCHITECTURE.md)** | System design, components, CI/CD pipeline, data flows |
+| **[🔌 API Reference](docs/API_REFERENCE.md)** | Complete API docs with code examples (Python, cURL, JS, Go) |
+| **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** | Step-by-step deployment: Docker → K8s → Helm → CI/CD → Production |
+| **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)** | Problem-solving guide with quick diagnostics |
+| **[✅ Release Checklist](docs/release-checklist.md)** | Pre-deployment verification |
+
+**Total Documentation**: 3,359+ lines covering architecture, deployment, operations, and troubleshooting.
+
+---
+
+## ✨ Key Features
+
+### 🐳 Containerization
+- Multi-stage Docker builds for optimal image size
+- Docker Compose for local development stack
+- Image security scanning with Trivy (fail on HIGH/CRITICAL)
+
+### ☸️ Kubernetes & Helm
+- Production-ready Helm chart with dev/prod values
+- Health probes (startup, liveness, readiness)
+- Horizontal Pod Autoscaler (HPA) for automatic scaling
+- Ingress with NGINX for HTTP routing
+- PersistentVolumeClaims for Redis data
+
+### 🚀 CI/CD Pipeline
+- Automated build, test, and deployment
+- Multi-registry support (GHCR + DockerHub)
+- Security scanning at every stage
+- E2E smoke tests post-deployment
+- **Automatic rollback on failure**
+
+### 📊 Observability
+- Prometheus metrics exposition (`/metrics`)
+- Health check endpoints (`/healthz`, `/ready`)
+- Coming in M4: Grafana dashboards, Alertmanager
+
+### 🔒 Security (M4)
+- Secret management with Kubernetes Secrets
+- Planned: NetworkPolicy for pod isolation
+- Planned: Non-root containers, read-only filesystem
+
+---
 
 ## Architecture (ASCII)
 
@@ -35,6 +88,8 @@ Client ──HTTP──► │  Ingress (NGINX, K8s) │  host: api.<minikube-ip
                       └───────────┘
 ```
 
+**📐 For detailed architecture documentation**: [Architecture Guide](docs/ARCHITECTURE.md)
+
 > Coming up: Prometheus/Grafana (M4).
 
 ## Repo Layout (Now)
@@ -54,6 +109,8 @@ Makefile
 > **Note:** `deploy/k8s-examples/` contains raw K8s manifests for educational reference only.
 
 ## Quickstart
+
+> **💡 Tip**: For detailed deployment instructions, see the [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
 
 ### Local (Docker)
 
@@ -222,6 +279,8 @@ K8s probes:
 - `readinessProbe`: /ready
 - `livenessProbe`: /healthz
 
+**📖 For complete API documentation**: [API Reference](docs/API_REFERENCE.md)
+
 ## Make targets
 
 Run `make help` for a list. Highlights:
@@ -258,13 +317,16 @@ make helm-rollback REV=<number>
 
 ## Roadmap (Milestones)
 
+**📊 [Track Progress in Documentation Index](docs/INDEX.md#milestone-progress)**
+
 - **M1 (by Oct 09):** Containerized stack (FastAPI + Celery worker + Redis) deployed to Minikube.
   Includes Dockerfiles, base K8s manifests, probes, Ingress, and HPA. ✅ **DONE**
 - **M2 (by Oct 14):** Helm chart (dev/prod) with templates, values, and rollback testing. ✅ **DONE**
 - **M3 (by Oct 19):** CI/CD pipeline – build → test → scan → push → deploy via `helm upgrade --install`
   with automated E2E smoke test after deployment. ✅ **DONE**
-- **M4 (by Oct 23):** Observability – Prometheus + Grafana + Alertmanager with 2 alerts (CrashLoop, CPU >80%)  
-  and dashboards for RPS, latency, and error rates.
+  - **📚 Complete documentation suite** (3,359+ lines) ✅ **DONE**
+- **M4 (by Oct 23):** Observability – Prometheus + Grafana + Alertmanager with 2 alerts (CrashLoop, CPU >80%)
+  and dashboards for RPS, latency, and error rates. 🚧 **IN PROGRESS**
 - **M5 (by Oct 31):** Production readiness & release polish – Redis backup/restore script,
   prod configuration, chaos testing, final README (EN) with cost analysis and diagrams.
   📦 **Release v0.1.0**
@@ -280,6 +342,43 @@ make helm-rollback REV=<number>
 
 - Non-root containers, dropped capabilities, healthchecks
 - Secrets kept out of git; example manifests provided
+- **Full Security Guide**: Coming in M4 ([Architecture - Security](docs/ARCHITECTURE.md#security-architecture))
+
+---
+
+## Need Help?
+
+- **📖 Browse Documentation**: [Complete Documentation Index](docs/INDEX.md)
+- **🔧 Troubleshooting**: [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- **🚀 Deployment Issues**: [Deployment Guide - Troubleshooting](docs/DEPLOYMENT_GUIDE.md#troubleshooting)
+- **💬 Ask Questions**: Open an issue with `[QUESTION]` label
+- **🐛 Report Bugs**: Open an issue with `[BUG]` label
+- **📝 Documentation Feedback**: Open an issue with `[DOCS]` label
+
+**Quick Diagnostics**:
+```bash
+# Run comprehensive system check
+./docs/quick-diag.sh > diagnostics.txt
+
+# Check specific components
+kubectl -n october get all
+helm list -n october
+make k8s-get
+```
+
+---
+
+## Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit with milestone tags (`git commit -m "[DAY20] Add feature"`)
+4. Push and open a Pull Request
+
+See [Documentation Index](docs/INDEX.md) for contribution guidelines.
+
+---
 
 ## License
 
