@@ -353,13 +353,20 @@ readinessProbe:
   failureThreshold: 3
 ```
 
-### Metrics (Prometheus - Planned M4)
+### Metrics & Monitoring
 
-**Application Metrics**:
+**Application Metrics** (exported at `/metrics`):
 - `http_requests_total` (counter): Total HTTP requests by method/path/status
-- `http_request_duration_seconds` (histogram): Request latency distribution
-- `celery_tasks_total` (counter): Tasks processed by status
-- `celery_task_duration_seconds` (histogram): Task execution time
+- `http_request_duration_seconds` (histogram): Request latency distribution with buckets
+- `celery_tasks_total` (counter): Tasks processed by status (planned)
+- `celery_task_duration_seconds` (histogram): Task execution time (planned)
+
+**Prometheus Stack** (kube-prometheus-stack):
+- **Prometheus**: Time-series database for metrics storage and querying
+- **Grafana**: Visualization dashboards (RPS, latency p95, 5xx rate)
+- **ServiceMonitor**: CRD for automatic metrics scraping configuration (requires `release: mon` label)
+- **PrometheusRule**: CRD for alert definitions (CrashLoopBackOff, High CPU)
+- **Alertmanager**: Alert routing and notification (included, advanced config pending)
 
 **Infrastructure Metrics**:
 - CPU usage per pod

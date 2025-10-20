@@ -53,5 +53,5 @@ LABEL org.opencontainers.image.source="https://github.com/lotoos0/k8s-helm-portf
   org.opencontainers.image.description="DevOps October demo service" \
   org.opencontainers.image.licenses="MIT"
 
-# Command: uvicorn
-CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command: uvicorn (explicit single worker for prometheus_client compatibility)
+CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

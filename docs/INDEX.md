@@ -79,7 +79,7 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 - **Understand architecture**: [Architecture Documentation](ARCHITECTURE.md)
 - **Review CI/CD pipeline**: [CI/CD Architecture](ARCHITECTURE.md#cicd-architecture)
 - **Plan production deployment**: [Production Deployment](DEPLOYMENT_GUIDE.md#production-deployment)
-- **Configure monitoring**: Coming in M4 (Milestone 4)
+- **Configure monitoring**: [Monitoring Setup](../README.md#-monitoring-prometheus--grafana) (Prometheus + Grafana)
 
 **Key Files**:
 - [`ARCHITECTURE.md`](ARCHITECTURE.md#infrastructure-architecture)
@@ -100,8 +100,8 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 ### 🎯 SRE (Site Reliability Engineer)
 
 **I want to...**
-- **Set up monitoring**: Coming in M4 (Prometheus + Grafana)
-- **Configure alerts**: Coming in M4 (Alertmanager)
+- **Set up monitoring**: [Monitoring Setup](../README.md#-monitoring-prometheus--grafana) (Prometheus + Grafana + ServiceMonitor)
+- **Configure alerts**: [PrometheusRule Alerts](../README.md#alerts-prometheusrule) (CrashLoopBackOff, High CPU)
 - **Perform rollbacks**: [Upgrade & Rollback](DEPLOYMENT_GUIDE.md#upgrade--rollback)
 - **Troubleshoot incidents**: [Troubleshooting Guide](TROUBLESHOOTING.md)
 
@@ -255,16 +255,18 @@ curl -s http://api.$MINIKUBE_IP.nip.io/healthz
 
 **Documentation**: [CI/CD Deployment](DEPLOYMENT_GUIDE.md#cicd-deployment)
 
-### 🚧 M4: Observability (Oct 23) - IN PROGRESS
-- [ ] Prometheus + Grafana
-- [ ] Metrics dashboards
-- [ ] Alertmanager
+### ✅ M4: Observability (Oct 20) - COMPLETED
+- [x] Prometheus + Grafana (kube-prometheus-stack)
+- [x] Metrics dashboards (RPS, latency p95, 5xx rate)
+- [x] ServiceMonitor with automatic scraping
+- [x] PrometheusRule (CrashLoopBackOff, High CPU alerts)
+- [ ] Alertmanager configuration (advanced routing)
 - [ ] Security hardening
 - [ ] NetworkPolicy
 
-**Planned Documentation**:
-- `OBSERVABILITY_GUIDE.md`
-- `SECURITY_GUIDE.md`
+**Documentation**:
+- [README - Monitoring Section](../README.md#-monitoring-prometheus--grafana)
+- [Architecture - Observability](ARCHITECTURE.md#observability-architecture)
 
 ### 📋 M5: Production Ready (Oct 31)
 - [ ] Redis backup/restore

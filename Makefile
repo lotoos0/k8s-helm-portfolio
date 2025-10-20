@@ -340,3 +340,29 @@ smoke-pf: ## Run E2E via port-forward (local fallback)
 	./scripts/smoke.sh "localhost:8080"; RC=$$?
 	@if [ -f .pf.pid ]; then kill $$(cat .pf.pid) || true; rm .pf.pid; fi
 	@exit $$RC
+
+# --------- Monitoring stack ( kube-prometheus-stack ) ----------
+MON_NS ?= monitoring
+MON_REL ?= mon
+
+mon-install: ## Install/upgrade kube-prometheus-stack
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	helm repo update
+	helm upgrade --install $(MON_REL) prometheus-community/kube-prometheus-stack \
+		-n $(MON_NS) --create-namespace
+
+mon-status: ## Show monitoring components 
+	kubectl -n $(MON_NS) get pods,svc
+
+mon-pf-grafana: ## Port-forward Grafana :3000
+	@SVC=$$(kubectl -n $(MON_NS) get svc -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].metadata.name}'); \
+	echo "Port-forwarding $$SVC -> :3000"; \
+	kubectl -n $(MON_NS) port-forward svc/$$SVC 3000:80
+
+mon-pf-prom: ## Port-forward Prometheus :9090
+	@SVC=$$(kubectl -n $(MON_NS) get svc -l app=kube-prometheus-stack-prometheus -o jsonpath='{.items[0].metadata.name}'); \
+	echo "Port-forwading $$SVC -> :9090"; \
+	kubectl -n $(MON_NS) port-forward svc/$$SVC 9090:9090
+
+mon-grafana-pass: ## Print Grafana admin password
+	@kubectl -n $(MON_NS) get secret $(MON_REL)-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo

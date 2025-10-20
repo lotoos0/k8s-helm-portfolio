@@ -69,6 +69,14 @@ tolerations: []
 ## Example: affinity: { nodeAffinity: {...} }
 affinity: {}
 
+## Prometheus alerts configuration
+## ref: https://prometheus-operator.dev/docs/operator/design/#prometheusrule
+alerts:
+  ## @param alerts.enabled Enable PrometheusRule resource for alerting
+  enabled: true
+  ## @param alerts.release Prometheus Operator release name (must match Prometheus selector)
+  release: "mon"
+
 # ─────────────────────────────────────────────────────────
 # API Service Configuration
 # ─────────────────────────────────────────────────────────
@@ -100,6 +108,19 @@ api:
     type: ClusterIP
     ## @param api.service.port Service port (internal cluster communication)
     port: 80
+
+  ## ServiceMonitor configuration for Prometheus Operator
+  ## ref: https://prometheus-operator.dev/docs/operator/design/#servicemonitor
+  serviceMonitor:
+    ## @param api.serviceMonitor.enabled Enable ServiceMonitor resource for Prometheus scraping
+    enabled: true
+    ## @param api.serviceMonitor.interval Scrape interval
+    interval: 15s
+    ## @param api.serviceMonitor.scrapeTimeout Scrape timeout
+    scrapeTimeout: 5s
+    ## @param api.serviceMonitor.additionalLabels Additional labels for ServiceMonitor (e.g., for Prometheus selector)
+    additionalLabels:
+      release: mon  # Required by Prometheus Operator selector
 
   ## Ingress configuration for external access
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/

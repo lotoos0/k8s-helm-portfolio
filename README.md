@@ -10,7 +10,7 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 - 🐳 **Docker & Compose** – Containerized microservices
 - ☸️ **Kubernetes** – Production-ready orchestration (manifests → Helm)
 - 🚀 **CI/CD** – Automated build → test → scan → deploy with E2E smoke tests
-- 📊 **Observability** – Prometheus + Grafana + Alertmanager (M4 in progress)
+- 📊 **Observability** – Prometheus + Grafana + ServiceMonitor + PrometheusRule
 
 ---
 
@@ -52,9 +52,11 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 - **Automatic rollback on failure**
 
 ### 📊 Observability
-- Prometheus metrics exposition (`/metrics`)
+- **Prometheus** metrics (`http_requests_total`, `http_request_duration_seconds`)
+- **Grafana** dashboards (RPS, latency p95, 5xx rate)
+- **ServiceMonitor** for automatic metrics scraping
+- **PrometheusRule** alerts (CrashLoopBackOff, High CPU)
 - Health check endpoints (`/healthz`, `/ready`)
-- Coming in M4: Grafana dashboards, Alertmanager
 
 ### 🔒 Security (M4)
 - Secret management with Kubernetes Secrets
@@ -89,8 +91,6 @@ Client ──HTTP──► │  Ingress (NGINX, K8s) │  host: api.<minikube-ip
 ```
 
 **📐 For detailed architecture documentation**: [Architecture Guide](docs/ARCHITECTURE.md)
-
-> Coming up: Prometheus/Grafana (M4).
 
 ## Repo Layout (Now)
 
@@ -210,6 +210,105 @@ make helm-rollback REV=<number>
 - Use `helm diff` before every upgrade
 - Keep image tags immutable.
 ```
+
+---
+
+## 📊 Monitoring (Prometheus + Grafana)
+
+### Setup kube-prometheus-stack
+
+```bash
+# Install Prometheus, Grafana, Alertmanager
+make mon-install
+
+# Check status
+make mon-status
+```
+
+### Access Dashboards
+
+```bash
+# Grafana (http://localhost:3000)
+make mon-pf-grafana
+
+# Get admin password
+make mon-grafana-pass
+
+# Prometheus (http://localhost:9090)
+make mon-pf-prom
+```
+
+**Default credentials**: `admin` / (use `make mon-grafana-pass`)
+
+### Metrics Available
+
+The API exposes Prometheus metrics at `/metrics`:
+
+- **`http_requests_total`** - Counter with labels: `method`, `path`, `status`
+- **`http_request_duration_seconds`** - Histogram with buckets for latency
+
+**ServiceMonitor** automatically scrapes metrics (configured in `values.yaml`):
+```yaml
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  additionalLabels:
+    release: mon  # Required for Prometheus Operator selector
+```
+
+### Grafana Dashboards
+
+Import dashboard with these PromQL queries:
+
+**1. RPS by Status:**
+```promql
+sum by (status) (rate(http_requests_total{namespace="october"}[$__rate_interval]))
+```
+
+**2. Latency p95:**
+```promql
+1000 * histogram_quantile(0.95,
+  sum by (le) (rate(http_request_duration_seconds_bucket{namespace="october"}[$__rate_interval]))
+)
+```
+
+**3. 5xx Error Rate:**
+```promql
+sum(rate(http_requests_total{namespace="october", status=~"5.."}[$__rate_interval]))
+```
+
+### Alerts (PrometheusRule)
+
+Configured alerts (toggleable via `values.yaml`):
+
+```yaml
+alerts:
+  enabled: true
+  release: "mon"
+```
+
+**Active alerts:**
+- **CrashLoopBackOffPods** - Pod in CrashLoopBackOff >5m (severity: warning)
+- **HighCPUApi** - API CPU >80% of requests for 5m (severity: warning)
+
+View alerts: http://localhost:9090/alerts (after `make mon-pf-prom`)
+
+### Troubleshooting
+
+**No metrics in Grafana?**
+1. Check ServiceMonitor has `release: mon` label
+2. Verify Prometheus targets show API as UP: http://localhost:9090/targets
+3. Generate traffic: `curl http://localhost:8080/healthz`
+4. Check `/metrics` endpoint directly
+
+**Dashboard shows "No data"?**
+- Ensure namespace variable is set to `october`
+- Verify time range includes recent data
+- Check Prometheus data source is configured
+
+```
+
+---
 
 The Helm chart (`deploy/helm/api`) includes API, Redis, Worker, Ingress, and HPA in a single release.
 

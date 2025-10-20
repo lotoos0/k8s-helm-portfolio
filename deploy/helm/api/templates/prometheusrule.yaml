@@ -1,0 +1,40 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-alerts
+  namespace: {{ .Values.namespace }}
+  labels:
+    release: {{ default "mon" .Values.alerts.release | quote }}  # musi odpowiadać release'owi Prometheusa
+spec:
+  groups:
+    - name: app.rules
+      rules:
+        - alert: CrashLoopBackOffPods
+          expr: |
+            sum by (pod) (
+              kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", namespace="{{ .Values.namespace }}"}
+            ) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod in CrashLoopBackOff ({{`{{ $labels.pod }}`}})"
+            description: "Pod has been in CrashLoopBackOff for >5m."
+
+        - alert: HighCPUApi
+          expr: |
+            sum by (pod) (
+              rate(container_cpu_usage_seconds_total{namespace="{{ .Values.namespace }}", pod=~"api-.*"}[5m])
+            )
+            /
+            sum by (pod) (
+              kube_pod_container_resource_requests{namespace="{{ .Values.namespace }}", resource="cpu", pod=~"api-.*"}
+            ) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU (>80%) on API ({{`{{ $labels.pod }}`}})"
+            description: "CPU usage over 80% of requested for 5m."
+{{- end }}

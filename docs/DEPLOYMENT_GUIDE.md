@@ -603,7 +603,14 @@ helm history app -n production
 ```
 
 **7. Monitor Metrics**:
-- Check Grafana dashboards (M4)
+```bash
+# Access Grafana
+make mon-pf-grafana  # http://localhost:3000 (admin / see make mon-grafana-pass)
+
+# Access Prometheus
+make mon-pf-prom     # http://localhost:9090
+```
+- Check Grafana dashboards (RPS, latency p95, 5xx rate)
 - Verify error rates < 1%
 - Confirm latency p99 < 500ms
 
@@ -813,8 +820,8 @@ helm get values app -n october
 
 After successful deployment:
 
-1. **Configure Monitoring** (M4): [Observability Guide](OBSERVABILITY_GUIDE.md)
-2. **Set Up Alerts**: [Alert Configuration](../runbooks/alerts.md)
+1. **Configure Monitoring**: [Monitoring Setup](../README.md#-monitoring-prometheus--grafana) (Prometheus + Grafana + ServiceMonitor)
+2. **Set Up Alerts**: PrometheusRule configured (CrashLoopBackOff, High CPU) - see [README Alerts](../README.md#alerts-prometheusrule)
 3. **Review Security**: [Security Hardening](SECURITY_GUIDE.md)
 4. **Backup Strategy**: [Backup & Restore](../runbooks/redis-backup-restore.md)
 
