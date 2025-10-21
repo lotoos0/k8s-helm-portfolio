@@ -1,6 +1,7 @@
 import time
-from fastapi import FastAPI, Request, Response, HTTPException
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest, Counter, Histogram
+
+from fastapi import FastAPI, HTTPException, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 REQUESTS = Counter(
     "http_requests_total",

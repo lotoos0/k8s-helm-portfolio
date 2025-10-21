@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](docs/ARCHITECTURE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
-
+![progress](https://img.shields.io/badge/Project_Progress-65%25-brightgreen)
 A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
 - 🐳 **Docker & Compose** – Containerized microservices
@@ -18,13 +18,13 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 
 **[📍 START HERE: Complete Documentation Index](docs/INDEX.md)**
 
-| Document | Description |
-|----------|-------------|
-| **[🏗️ Architecture](docs/ARCHITECTURE.md)** | System design, components, CI/CD pipeline, data flows |
-| **[🔌 API Reference](docs/API_REFERENCE.md)** | Complete API docs with code examples (Python, cURL, JS, Go) |
-| **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** | Step-by-step deployment: Docker → K8s → Helm → CI/CD → Production |
-| **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)** | Problem-solving guide with quick diagnostics |
-| **[✅ Release Checklist](docs/release-checklist.md)** | Pre-deployment verification |
+| Document                                              | Description                                                       |
+| ----------------------------------------------------- | ----------------------------------------------------------------- |
+| **[🏗️ Architecture](docs/ARCHITECTURE.md)**           | System design, components, CI/CD pipeline, data flows             |
+| **[🔌 API Reference](docs/API_REFERENCE.md)**         | Complete API docs with code examples (Python, cURL, JS, Go)       |
+| **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**   | Step-by-step deployment: Docker → K8s → Helm → CI/CD → Production |
+| **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)**     | Problem-solving guide with quick diagnostics                      |
+| **[✅ Release Checklist](docs/release-checklist.md)** | Pre-deployment verification                                       |
 
 **Total Documentation**: 3,359+ lines covering architecture, deployment, operations, and troubleshooting.
 
@@ -33,11 +33,13 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 ## ✨ Key Features
 
 ### 🐳 Containerization
+
 - Multi-stage Docker builds for optimal image size
 - Docker Compose for local development stack
 - Image security scanning with Trivy (fail on HIGH/CRITICAL)
 
 ### ☸️ Kubernetes & Helm
+
 - Production-ready Helm chart with dev/prod values
 - Health probes (startup, liveness, readiness)
 - Horizontal Pod Autoscaler (HPA) for automatic scaling
@@ -45,6 +47,7 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 - PersistentVolumeClaims for Redis data
 
 ### 🚀 CI/CD Pipeline
+
 - Automated build, test, and deployment
 - Multi-registry support (GHCR + DockerHub)
 - Security scanning at every stage
@@ -52,6 +55,7 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 - **Automatic rollback on failure**
 
 ### 📊 Observability
+
 - **Prometheus** metrics (`http_requests_total`, `http_request_duration_seconds`)
 - **Grafana** dashboards (RPS, latency p95, 5xx rate)
 - **ServiceMonitor** for automatic metrics scraping
@@ -59,6 +63,7 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 - Health check endpoints (`/healthz`, `/ready`)
 
 ### 🔒 Security (M4)
+
 - Secret management with Kubernetes Secrets
 - Planned: NetworkPolicy for pod isolation
 - Planned: Non-root containers, read-only filesystem
@@ -248,12 +253,13 @@ The API exposes Prometheus metrics at `/metrics`:
 - **`http_request_duration_seconds`** - Histogram with buckets for latency
 
 **ServiceMonitor** automatically scrapes metrics (configured in `values.yaml`):
+
 ```yaml
 serviceMonitor:
   enabled: true
   interval: 15s
   additionalLabels:
-    release: mon  # Required for Prometheus Operator selector
+    release: mon # Required for Prometheus Operator selector
 ```
 
 ### Grafana Dashboards
@@ -261,11 +267,13 @@ serviceMonitor:
 Import dashboard with these PromQL queries:
 
 **1. RPS by Status:**
+
 ```promql
 sum by (status) (rate(http_requests_total{namespace="october"}[$__rate_interval]))
 ```
 
 **2. Latency p95:**
+
 ```promql
 1000 * histogram_quantile(0.95,
   sum by (le) (rate(http_request_duration_seconds_bucket{namespace="october"}[$__rate_interval]))
@@ -273,6 +281,7 @@ sum by (status) (rate(http_requests_total{namespace="october"}[$__rate_interval]
 ```
 
 **3. 5xx Error Rate:**
+
 ```promql
 sum(rate(http_requests_total{namespace="october", status=~"5.."}[$__rate_interval]))
 ```
@@ -288,6 +297,7 @@ alerts:
 ```
 
 **Active alerts:**
+
 - **CrashLoopBackOffPods** - Pod in CrashLoopBackOff >5m (severity: warning)
 - **HighCPUApi** - API CPU >80% of requests for 5m (severity: warning)
 
@@ -296,17 +306,19 @@ View alerts: http://localhost:9090/alerts (after `make mon-pf-prom`)
 ### Troubleshooting
 
 **No metrics in Grafana?**
+
 1. Check ServiceMonitor has `release: mon` label
 2. Verify Prometheus targets show API as UP: http://localhost:9090/targets
 3. Generate traffic: `curl http://localhost:8080/healthz`
 4. Check `/metrics` endpoint directly
 
 **Dashboard shows "No data"?**
+
 - Ensure namespace variable is set to `october`
 - Verify time range includes recent data
 - Check Prometheus data source is configured
 
-```
+````
 
 ---
 
@@ -334,7 +346,7 @@ CI pushes on PR/main. To release:
 ```bash
 git tag -a v0.1.0 -m "v0.1.0"
 git push origin v0.1.0
-```
+````
 
 ### CD to Dev (GitHub Actions)
 
@@ -455,6 +467,7 @@ make helm-rollback REV=<number>
 - **📝 Documentation Feedback**: Open an issue with `[DOCS]` label
 
 **Quick Diagnostics**:
+
 ```bash
 # Run comprehensive system check
 ./docs/quick-diag.sh > diagnostics.txt
@@ -470,6 +483,7 @@ make k8s-get
 ## Contributing
 
 Contributions welcome! Please:
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit with milestone tags (`git commit -m "[DAY20] Add feature"`)
