@@ -1,7 +1,10 @@
+import os
 import time
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+
+FAIL_HEALTHZ = os.getenv("FAIL_HEALTHZ", "false").lower() == "true"
 
 REQUESTS = Counter(
     "http_requests_total",
@@ -34,6 +37,8 @@ def create_app() -> FastAPI:
 
     @app.get("/healthz")
     def healthz():
+        if FAIL_HEALTHZ:
+            return Response(status_code=500)
         return {"status": "ok"}
 
     @app.get("/ready")
@@ -44,6 +49,15 @@ def create_app() -> FastAPI:
     def error_test():
         """Test endpoint for 5xx monitoring"""
         raise HTTPException(status_code=500, detail="Test 500 error for monitoring")
+
+    @app.get("/burn")
+    def burn(seconds: float = 2.0):
+        # simple CPU-bound to test HPA/CPU alert
+        end = time.perf_counter() + max(0.1, float(seconds))
+        x = 0.0
+        while time.perf_counter() < end:
+            x += 3.14159 * 2.71828  # π × e
+        return {"burned_s": seconds}
 
     @app.get("/metrics")
     def metrics():

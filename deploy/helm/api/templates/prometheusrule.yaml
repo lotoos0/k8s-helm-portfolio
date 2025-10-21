@@ -3,9 +3,10 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: app-alerts
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.alerts.namespace | default "monitoring" }}
   labels:
     release: {{ default "mon" .Values.alerts.release | quote }}  # musi odpowiadać release'owi Prometheusa
+    app: {{ .Values.namespace }}  # Tag which app this alert belongs to
 spec:
   groups:
     - name: app.rules

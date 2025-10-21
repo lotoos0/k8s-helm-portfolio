@@ -1,0 +1,4 @@
+alertmanager:
+  extraEnvFrom:
+    - secretRef:
+        name: am-slack

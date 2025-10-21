@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
 ![progress](https://img.shields.io/badge/Project_Progress-65%25-brightgreen)
+
 A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
 - 🐳 **Docker & Compose** – Containerized microservices
@@ -318,6 +319,52 @@ View alerts: http://localhost:9090/alerts (after `make mon-pf-prom`)
 - Verify time range includes recent data
 - Check Prometheus data source is configured
 
+### Alerting Runbook
+
+**Stack:** kube-prometheus-stack (Prometheus, Alertmanager, Grafana)
+
+**Configuration:**
+
+- Alertmanager config via Helm values: `deploy/monitoring/values-alerting.yaml`
+- Slack webhook kept in Secret `am-slack` (namespace `monitoring`)
+- Alert rules defined in `deploy/helm/api/templates/prometheusrule.yaml`
+
+**Access Alertmanager:**
+
+```bash
+make mon-pf-am  # Port-forward to http://localhost:9093
+```
+
+**Test Alerts:**
+
+```bash
+# 1. Test CrashLoopBackOff alert
+make mon-fire-crash   # Triggers FAIL_HEALTHZ=true
+# Expected: CrashLoopBackOffPods alert fires after ~5-7 minutes
+# Watch: kubectl -n october get pods -w
+
+# 2. Heal the crash
+make mon-heal-crash   # Sets FAIL_HEALTHZ=false
+
+# 3. Test CPU alert
+make mon-fire-cpu     # Generates sustained CPU load via /burn endpoint
+# Expected: HighCPUApi alert fires after ~5 minutes of sustained load >80%
+# Watch: kubectl top pods -n october
+```
+
+**Alert Timeline:**
+
+- Alerts have a `for: 5m` condition to avoid false positives
+- **CrashLoopBackOff**: ~2-3 min for status + 5 min observation = **~7-8 min total**
+- **HighCPU**: Sustained load >80% for 5 min = **~5-6 min total**
+- Slack notifications sent immediately when alert enters **FIRING** state
+
+**Troubleshooting Alerts:**
+
+- **No alerts firing?** Check Prometheus targets: `make mon-pf-prom` → http://localhost:9090/targets
+- **Slack not working?** Verify Secret: `kubectl -n monitoring get secret am-slack -o yaml`
+- **Alert stuck in PENDING?** Condition not met long enough (check `for: 5m` duration)
+
 ````
 
 ---
@@ -444,8 +491,9 @@ make helm-rollback REV=<number>
 
 ## What's Next (M4: Observability + Security)
 
-- **DAY20:** Set up Prometheus + Grafana stack, configure scraping for `/metrics`, create dashboards (RPS, p95, 5xx)
-- **DAY21:** Configure Alertmanager with 2 alerts: CrashLoopBackOff >5m, CPU >80% for 5m
+~~- **DAY20:** Set up Prometheus + Grafana stack, configure scraping for `/metrics`, create dashboards (RPS, p95, 5xx)~~
+~~- **DAY21:** Configure Alertmanager with 2 alerts: CrashLoopBackOff >5m, CPU >80% for 5m~~
+
 - **DAY22:** Security hardening – SecurityContext (non-root, read-only filesystem), NetworkPolicy (API↔Redis isolation)
 - **DAY23:** Minimal base images (alpine/distroless), update README "Security Notes" section
 

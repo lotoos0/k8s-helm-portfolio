@@ -366,3 +366,35 @@ mon-pf-prom: ## Port-forward Prometheus :9090
 
 mon-grafana-pass: ## Print Grafana admin password
 	@kubectl -n $(MON_NS) get secret $(MON_REL)-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo
+
+mon-pf-am: ## Port-forward Alertmanager :9093
+	@SVC=$$(kubectl -n $(MON_NS) get svc -l app=kube-prometheus-stack-alertmanager -o jsonpath='{.items[0].metadata.name}'); \
+	echo "Port-forwarding $$SVC -> :9093"; \
+	kubectl -n $(MON_NS) port-forward svc/$$SVC 9093:9093
+
+mon-alerts-apply: ## Apply alertmanager values (Slack)
+	helm upgrade --install $(MON_REL) prometheus-community/kube-prometheus-stack \
+		-n $(MON_NS) -f deploy/monitoring/values-alerting.yaml -f deploy/monitoring/values-extra.yaml
+
+mon-alerts-status: ## Check AM routes/receivers
+	kubectl -n $(MON_NS) get pods,svc | grep alertmanager || true
+
+# ---- Day21 helpers ----
+mon-fire-crash: ## Trigger Crash LoopBackOff on API (sets env.FAIL_HEALTHZ=true)
+	@IP=$$(minikube ip); \
+	helm upgrade --install $(HELM_NAME) $(HELM_DIR) -n $(HELM_NS) \
+	  -f $(HELM_DIR)/values.yaml -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=api.$$IP.nip.io --set env.FAIL_HEALTHZ=true \
+	  --atomic --timeout 5m && echo "CrashLoop induced. Wait a few minutes for alert."
+
+mon-heal-crash: ## Heal CrashLoop (sets env.FAIL_HEALTHZ=false)
+	@IP=$$(minikube ip); \
+	helm upgrade --install $(HELM_NAME) $(HELM_DIR) -n $(HELM_NS) \
+	  -f $(HELM_DIR)/values.yaml -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=api.$$IP.nip.io --set env.FAIL_HEALTHZ=false \
+	  --atomic --timeout 5m
+
+mon-fire-cpu: ## Generate CPU load via /burn
+	@IP=$$(minikube ip); for i in $$(seq 1 20); do curl -s "http://api.$$IP.nip.io/burn?seconds=5" >/dev/null & done; wait; \
+	echo "CPU load fired. Watch alerts in ~5m."
+
