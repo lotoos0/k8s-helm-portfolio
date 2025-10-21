@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](docs/ARCHITECTURE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
-![progress](https://img.shields.io/badge/Project_Progress-65%25-brightgreen)
+![progress](https://img.shields.io/badge/Project_Progress-67%25-brightgreen)
 
 A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
