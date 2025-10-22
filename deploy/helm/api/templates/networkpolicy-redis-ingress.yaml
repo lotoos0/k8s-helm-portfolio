@@ -1,0 +1,30 @@
+{{- if and .Values.networkPolicy.enabled (or .Values.networkPolicy.allowApiToRedis .Values.networkPolicy.allowWorkerToRedis) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-allow-from-api-worker
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    {{- if or .Values.networkPolicy.allowApiToRedis .Values.networkPolicy.allowWorkerToRedis }}
+    - from:
+        {{- if .Values.networkPolicy.allowApiToRedis }}
+        - podSelector:
+            matchLabels:
+              app: api
+        {{- end }}
+        {{- if .Values.networkPolicy.allowWorkerToRedis }}
+        - podSelector:
+            matchLabels:
+              app: worker
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 6379
+    {{- end }}
+{{- end }}

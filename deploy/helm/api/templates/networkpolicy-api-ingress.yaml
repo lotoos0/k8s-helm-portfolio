@@ -1,0 +1,20 @@
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.allowFromIngressNginx }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow-from-ingress-nginx
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressNginxNamespace }}
+      ports:
+        - protocol: TCP
+          port: 8000  # Container port, not Service port
+{{- end }}

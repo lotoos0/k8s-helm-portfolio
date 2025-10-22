@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](docs/ARCHITECTURE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
-![progress](https://img.shields.io/badge/Project_Progress-67%25-brightgreen)
+![progress](https://img.shields.io/badge/Project_Progress-71%25-purple)
 
 A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
@@ -63,11 +63,25 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 - **PrometheusRule** alerts (CrashLoopBackOff, High CPU)
 - Health check endpoints (`/healthz`, `/ready`)
 
-### 🔒 Security (M4)
+### 🔒 Security & Networking
 
-- Secret management with Kubernetes Secrets
-- Planned: NetworkPolicy for pod isolation
-- Planned: Non-root containers, read-only filesystem
+- Containers run as **non-root** (UID 10001), **readOnlyRootFilesystem** (with `/tmp` emptyDir)
+- **NetworkPolicy**: default-deny; allow only:
+  - Ingress from NGINX Ingress Controller → API (port 8000)
+  - Egress API/Worker → Redis:6379
+  - Egress all → kube-dns (TCP/UDP 53)
+- **PodDisruptionBudget**: API (minAvailable 50%), Worker (0 – single replica)
+- **Image Scanning**: Trivy in CI/CD (fail on HIGH/CRITICAL)
+- **Secrets**: Kubernetes Secrets with environment variable injection
+
+**Verification**:
+
+```bash
+kubectl -n october get pdb,networkpolicy
+make sec-test
+```
+
+**📖 Full Documentation**: [Security Guide](docs/SECURITY.md)
 
 ---
 
@@ -491,9 +505,8 @@ make helm-rollback REV=<number>
 
 ## What's Next (M4: Observability + Security)
 
-~~- **DAY20:** Set up Prometheus + Grafana stack, configure scraping for `/metrics`, create dashboards (RPS, p95, 5xx)~~
-~~- **DAY21:** Configure Alertmanager with 2 alerts: CrashLoopBackOff >5m, CPU >80% for 5m~~
-
+- ~**DAY20:** Set up Prometheus + Grafana stack, configure scraping for `/metrics`, create dashboards (RPS, p95, 5xx)~
+- ~**DAY21:** Configure Alertmanager with 2 alerts: CrashLoopBackOff >5m, CPU >80% for 5m~
 - **DAY22:** Security hardening – SecurityContext (non-root, read-only filesystem), NetworkPolicy (API↔Redis isolation)
 - **DAY23:** Minimal base images (alpine/distroless), update README "Security Notes" section
 

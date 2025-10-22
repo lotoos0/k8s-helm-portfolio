@@ -398,3 +398,20 @@ mon-fire-cpu: ## Generate CPU load via /burn
 	@IP=$$(minikube ip); for i in $$(seq 1 20); do curl -s "http://api.$$IP.nip.io/burn?seconds=5" >/dev/null & done; wait; \
 	echo "CPU load fired. Watch alerts in ~5m."
 
+# ----- Security ------
+sec-apply: ## Apply security hardening (NP/PDB/PriorityClass via Helm)
+	make helm-up-dev-atomic
+
+sec-test: ## Quick NP test: block external HTTP, allow Redis & DNS
+	@NS=$(HELM_NS); echo "Spinning ephemeral tester..."; \
+	kubectl -n $$NS run netshoot --image=nicolaka/netshoot -it --rm --restart=Never -- \
+	  sh -c 'echo "1) Test DNS (should work)"; nslookup kubernetes.default || exit 1; \
+	         echo "2) Test outbound 1.1.1.1:80 (should FAIL)"; (timeout 3 bash -lc ">/dev/tcp/1.1.1.1/80" && exit 2) || echo BLOCKED_OK; \
+	         echo "3) Test Redis svc (should work from api/worker only)"; exit 0'
+
+sec-off: ## Disable default-deny (for troubleshooting) - not recommended for long
+	helm upgrade --install $(HELM_NAME) $(HELM_DIR) -n $(HELM_NS) \
+	  -f $(HELM_DIR)/values.yaml -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=api.$(shell minikube ip).nip.io \
+	  --set networkPolicy.defaultDeny=false \
+	  --atomic --timeout 5m

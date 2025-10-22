@@ -92,6 +92,7 @@ helm history app -n october
 - **[Ingress Not Working](runbooks/ingress_not_working.md)** - Cannot access service via Ingress
 - **[Service Unreachable](runbooks/service_unreachable.md)** - Cannot connect to Kubernetes Service
 - **[kubectl No Route to Host](runbooks/kubectl_no_route_to_host.md)** - kubectl connectivity issues
+- **[NetworkPolicy Not Enforced](runbooks/networkpolicy-not-enforced.md)** - NetworkPolicy rules not being applied
 
 ### Helm & Deployment
 - **[Helm Upgrade Failed](runbooks/helm_upgrade_failed.md)** - Helm deployment issues
@@ -122,7 +123,7 @@ helm history app -n october
 |-------|---------|--------|
 | `Connection refused` | Service not listening on port | **[→ Runbook](runbooks/service_unreachable.md)** |
 | `No route to host` | Network unreachable | **[→ Runbook](runbooks/kubectl_no_route_to_host.md)** |
-| `Timeout` | Connection timed out | Check firewalls, network policies |
+| `Timeout` | Connection timed out | Check firewalls, **[→ NetworkPolicy](runbooks/networkpolicy-not-enforced.md)** |
 | `404 Not Found` | Ingress route not configured | **[→ Runbook](runbooks/ingress_not_working.md)** |
 | `503 Service Unavailable` | No healthy backends | **[→ Runbook](runbooks/service_unreachable.md)** |
 

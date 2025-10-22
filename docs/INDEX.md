@@ -32,6 +32,7 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 - **[Ingress Not Working](runbooks/ingress_not_working.md)** - Cannot access via Ingress
 - **[Service Unreachable](runbooks/service_unreachable.md)** - Cannot connect to service
 - **[kubectl No Route to Host](runbooks/kubectl_no_route_to_host.md)** - kubectl connectivity
+- **[NetworkPolicy Not Enforced](runbooks/networkpolicy-not-enforced.md)** - NetworkPolicy not blocking traffic (CNI issues)
 
 **Helm & Deployment:**
 - **[Helm Upgrade Failed](runbooks/helm_upgrade_failed.md)** - Helm deployment issues
@@ -91,7 +92,7 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 - **Review security posture**: [Security Architecture](ARCHITECTURE.md#security-architecture)
 - **Check vulnerability scanning**: [CI/CD Security](ARCHITECTURE.md#cicd-architecture)
 - **Understand secrets management**: [Secret Management](ARCHITECTURE.md#secret-management)
-- **Review network policies**: Coming in M4
+- **Review network policies**: [NetworkPolicy Runbook](runbooks/networkpolicy-not-enforced.md)
 
 **Key Files**:
 - [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) - Trivy scanning
