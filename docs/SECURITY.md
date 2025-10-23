@@ -34,6 +34,52 @@ The project implements **defense-in-depth** security with multiple layers:
 
 ## 🐳 Container Security
 
+### Minimal Base Images (Alpine Linux)
+
+All containers use **Alpine Linux 3.20** as the base image for minimal attack surface:
+
+**Image Sizes:**
+
+| Component | Before (Debian slim) | After (Alpine) | Reduction |
+|-----------|---------------------|----------------|-----------|
+| **API**   | 245 MB              | 99.8 MB        | **-59.3%** |
+| **Worker**| 169 MB              | 88 MB          | **-47.9%** |
+
+**Benefits:**
+- ✅ **Reduced attack surface** - Fewer packages = fewer CVEs (Alpine has minimal base packages)
+- ✅ **Faster deployments** - ~50% less data transfer during image pulls/pushes
+- ✅ **Lower costs** - Reduced storage and bandwidth usage
+- ✅ **Multi-stage builds** - Build dependencies eliminated from runtime image
+
+**Implementation:**
+```dockerfile
+# Builder stage - with build tools
+FROM python:3.11-alpine3.20 AS builder
+RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev
+# ... build steps ...
+
+# Runtime stage - minimal
+FROM python:3.11-alpine3.20 AS runtime
+# ... only runtime files ...
+```
+
+**Trade-offs:**
+- ⚠️ Requires compilation of some Python packages (longer build time)
+- ⚠️ Uses musl libc instead of glibc (compatibility considerations)
+- ✅ **Worth it**: Significantly reduced CVE exposure, faster CI/CD pipelines
+
+**Verification:**
+```bash
+# Check image sizes
+docker images | grep october
+
+# Check for build tools (should not exist in runtime)
+docker run --rm october-api:alpine-test which gcc
+# Expected: (empty - no gcc in runtime)
+```
+
+---
+
 ### Non-Root Containers
 
 All application containers run as **non-root user** (UID 10001):
@@ -843,6 +889,6 @@ kubectl rollout restart deployment/api -n october
 
 ---
 
-**Last Updated**: 2025-10-22
-**Security Review**: M4 (Observability & Security)
+**Last Updated**: 2025-10-23
+**Security Review**: M4 Complete (Alpine Migration + NetworkPolicy + Monitoring)
 **Next Review**: M5 (Production Hardening)

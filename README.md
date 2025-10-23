@@ -1,10 +1,10 @@
 # October DevOps – K8s + Helm + CI/CD + Observability
 
-[![Milestone](https://img.shields.io/badge/Milestone-M3%20Complete-success)](docs/INDEX.md)
+[![Milestone](https://img.shields.io/badge/Milestone-M4%20Complete-success)](docs/INDEX.md)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](docs/ARCHITECTURE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
-![progress](https://img.shields.io/badge/Project_Progress-71%25-purple)
+![progress](https://img.shields.io/badge/Project_Progress-75%25-purple)
 
 A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
@@ -498,23 +498,62 @@ make helm-rollback REV=<number>
   with automated E2E smoke test after deployment. ✅ **DONE**
   - **📚 Complete documentation suite** (3,359+ lines) ✅ **DONE**
 - **M4 (by Oct 23):** Observability – Prometheus + Grafana + Alertmanager with 2 alerts (CrashLoop, CPU >80%)
-  and dashboards for RPS, latency, and error rates. 🚧 **IN PROGRESS**
+  and dashboards for RPS, latency, and error rates. Security hardening with Alpine images. ✅ **DONE**
 - **M5 (by Oct 31):** Production readiness & release polish – Redis backup/restore script,
   prod configuration, chaos testing, final README (EN) with cost analysis and diagrams.
   📦 **Release v0.1.0**
 
-## What's Next (M4: Observability + Security)
+## What's Next (M5: Production Readiness)
 
 - ~**DAY20:** Set up Prometheus + Grafana stack, configure scraping for `/metrics`, create dashboards (RPS, p95, 5xx)~
 - ~**DAY21:** Configure Alertmanager with 2 alerts: CrashLoopBackOff >5m, CPU >80% for 5m~
-- **DAY22:** Security hardening – SecurityContext (non-root, read-only filesystem), NetworkPolicy (API↔Redis isolation)
-- **DAY23:** Minimal base images (alpine/distroless), update README "Security Notes" section
+- ~**DAY22:** Security hardening – SecurityContext (non-root, read-only filesystem), NetworkPolicy (API↔Redis isolation)~
+- ~**DAY23:** Minimal base images (Alpine: -59% API, -48% Worker), comprehensive security documentation~
+- **DAY24+:** Redis backup/restore, prod configuration, chaos testing, cost analysis, release v0.1.0
 
-## Security Notes (WIP)
+## 🔒 Security Implementation
 
-- Non-root containers, dropped capabilities, healthchecks
-- Secrets kept out of git; example manifests provided
-- **Full Security Guide**: Coming in M4 ([Architecture - Security](docs/ARCHITECTURE.md#security-architecture))
+### Container Security
+
+- **Minimal Base Images**: Alpine Linux 3.20
+  - **API**: 99.8MB (was 245MB) → **-59.3% reduction** 🔥
+  - **Worker**: 88MB (was 169MB) → **-47.9% reduction** 🔥
+  - Reduced attack surface (fewer packages = fewer CVEs)
+  - Faster pulls and deployments (~50% less data transfer)
+  - Multi-stage builds to eliminate build dependencies
+- **Non-Root Execution**: Containers run as UID 10001 (API) / 10002 (Worker)
+- **Read-Only Filesystem**: Root filesystem is read-only with writable /tmp emptyDir
+- **Dropped Capabilities**: ALL Linux capabilities dropped (no CAP_NET_ADMIN, CAP_SYS_ADMIN, etc.)
+- **Image Scanning**: Trivy in CI/CD fails on HIGH/CRITICAL vulnerabilities
+
+**Trade-offs**:
+
+- Alpine requires compilation of some Python packages (longer build time)
+- No shell in distroless (planned for M5) = harder debugging
+- **Worth it**: 47-59% smaller images (API: 245→100MB, Worker: 169→88MB), significantly reduced CVE exposure, faster deployments
+
+### Network Isolation
+
+- **Zero-Trust NetworkPolicy**: Default-deny all ingress & egress
+- **Explicit Allow Rules**:
+  - Ingress NGINX → API (port 8000)
+  - API/Worker → Redis (port 6379)
+  - All → kube-dns (port 53)
+- **Internet egress blocked** for all pods (prevents data exfiltration)
+
+### Secrets Management
+
+- Kubernetes Secrets with base64 encoding (not plaintext ConfigMaps)
+- No secrets in Git (`.gitignore` enforced)
+- Environment variable injection via `envFrom.secretRef`
+
+### High Availability
+
+- **PodDisruptionBudget**: API (minAvailable 50%), Worker (minAvailable 0)
+- **Health Probes**: startup, liveness, readiness checks
+- **HPA**: Automatic scaling based on CPU (min 1, max 5 replicas)
+
+**📖 Complete Security Guide**: [docs/SECURITY.md](docs/SECURITY.md)
 
 ---
 
