@@ -56,6 +56,20 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.priorityClass.enabled }}
+      priorityClassName: {{ .Values.priorityClass.name }}
+      {{- end }}
+      {{- if .Values.tmpVolume.enabled }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            {{- if .Values.tmpVolume.medium }}
+            medium: {{ .Values.tmpVolume.medium }}
+            {{- end }}
+            {{- if .Values.tmpVolume.sizeLimit }}
+            sizeLimit: {{ .Values.tmpVolume.sizeLimit }}
+            {{- end }}
+      {{- end }}
       containers:
         - name: worker
           image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
@@ -72,5 +86,10 @@ spec:
           {{- with .Values.worker.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.tmpVolume.enabled }}
+          volumeMounts:
+            - name: tmp
+              mountPath: {{ .Values.tmpVolume.mountPath }}
           {{- end }}
 

@@ -56,6 +56,20 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.priorityClass.enabled }}
+      priorityClassName: {{ .Values.priorityClass.name }}
+      {{- end }}
+      {{- if .Values.tmpVolume.enabled }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            {{- if .Values.tmpVolume.medium }}
+            medium: {{ .Values.tmpVolume.medium }}
+            {{- end }}
+            {{- if .Values.tmpVolume.sizeLimit }}
+            sizeLimit: {{ .Values.tmpVolume.sizeLimit }}
+            {{- end }}
+      {{- end }}
       containers:
         - name: api
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
@@ -93,4 +107,8 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-
+          {{- if .Values.tmpVolume.enabled }}
+          volumeMounts:
+            - name: tmp
+              mountPath: {{ .Values.tmpVolume.mountPath }}
+          {{- end }}

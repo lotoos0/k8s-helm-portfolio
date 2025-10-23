@@ -1,35 +1,41 @@
 # --------------- Builder stage --------------
-FROM python:3.11-slim AS builder
+FROM python:3.11-alpine3.20 AS builder
 
-# Faster and deterministic builds
+# Deterministic builds (no pip cache, no version check)
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-  PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# System deps for building wheels if needed (kept minimal) 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential \ 
-      && rm -rf /var/lib/apt/lists/* 
+# Build deps for compiling packages (Alpine = musl)
+RUN apk add --no-cache \
+      gcc \
+      musl-dev \
+      libffi-dev \
+      openssl-dev \
+      && rm -rf /var/cache/apk/*
 
-# Copy only dependency manifests to leverage layer caching
-COPY requirements.txt /app/requirements.txt
+# Create runtime venv
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install --upgrade pip
 
-# Create a dedicated folder for deps
-RUN python -m venv /opt/venv && /opt/venv/bin/pip install --upgrade pip \
-      && /opt/venv/bin/pip install -r /app/requirements.txt
+# Install ONLY runtime deps into venv
+# (Dev deps like pytest/ruff are installed locally or in CI, not in the image)
+COPY requirements.txt .
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 
 # --------------- Runtime stage ----------------
-FROM python:3.11-slim AS runtime
+FROM python:3.11-alpine3.20 AS runtime
 
 ENV PATH="/opt/venv/bin:$PATH" \
   PYTHONDONTWRITEBYTECODE=1 \
   PYTHONUNBUFFERED=1 \
+  PIP_NO_CACHE_DIR=1 \
   PORT=8000
 
 # Security: create non-root user
-RUN useradd -u 10001 -m appuser
+RUN addgroup -S app && adduser -S -D -H -u 10001 -G app appuser
 
 WORKDIR /app
 
@@ -47,11 +53,12 @@ EXPOSE 8000
 
 # Healthcheck – check endpoint liveness
 HEALTHCHECK --interval=20s --timeout=3s --retries=3 \
-  CMD sh -c 'python -c "import urllib.request, sys; urllib.request.urlopen(\"http://127.0.0.1:8000/healthz\", timeout=2); sys.exit(0)" || exit 1'
+  CMD python -c "import urllib.request, sys; \
+    sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).status == 200 else 1)"
 
 LABEL org.opencontainers.image.source="https://github.com/lotoos0/k8s-helm-portfolio" \
   org.opencontainers.image.description="DevOps October demo service" \
   org.opencontainers.image.licenses="MIT"
 
-# Command: uvicorn
-CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command: uvicorn (explicit single worker for prometheus_client compatibility)
+CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

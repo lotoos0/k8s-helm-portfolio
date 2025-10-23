@@ -51,11 +51,68 @@ containerSecurityContext:
   ## @param containerSecurityContext.allowPrivilegeEscalation Prevent privilege escalation
   allowPrivilegeEscalation: false
   ## @param containerSecurityContext.readOnlyRootFilesystem Make root filesystem read-only
-  ## Note: Set to false if app writes to /tmp or other paths
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   ## @param containerSecurityContext.capabilities.drop Drop all Linux capabilities by default
   capabilities:
     drop: ["ALL"]
+
+## Temporary volume configuration for readOnlyRootFilesystem
+## Provides writable /tmp directory when root filesystem is read-only
+tmpVolume:
+  ## @param tmpVolume.enabled Mount emptyDir volume at /tmp
+  enabled: true
+  ## @param tmpVolume.mountPath Mount path for temporary directory
+  mountPath: /tmp
+  ## @param tmpVolume.medium Storage medium ("" for default, "Memory" for tmpfs)
+  medium: ""
+  ## @param tmpVolume.sizeLimit Maximum size for tmpfs (e.g., "64Mi", "128Mi")
+  sizeLimit: ""
+
+## NetworkPolicy configuration for pod-level network isolation
+## ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+networkPolicy:
+  ## @param networkPolicy.enabled Enable NetworkPolicy resources
+  enabled: true
+  ## @param networkPolicy.allowFromIngressNginx Allow traffic from Ingress NGINX controller
+  allowFromIngressNginx: true
+  ## @param networkPolicy.ingressNginxNamespace Namespace where Ingress NGINX is deployed
+  ingressNginxNamespace: ingress-nginx
+  ## @param networkPolicy.defaultDeny Enable default-deny policy (block all traffic not explicitly allowed)
+  defaultDeny: true
+  ## @param networkPolicy.allowDNS Allow DNS resolution (kube-system/kube-dns or coredns)
+  allowDNS: true
+  ## @param networkPolicy.allowApiToRedis Allow API pods to access Redis
+  allowApiToRedis: true
+  ## @param networkPolicy.allowWorkerToRedis Allow Worker pods to access Redis
+  allowWorkerToRedis: true
+
+## PodDisruptionBudget configuration for high availability
+## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+pdb:
+  api:
+    ## @param pdb.api.enabled Enable PodDisruptionBudget for API pods
+    enabled: true
+    ## @param pdb.api.minAvailable Minimum number or percentage of pods that must remain available
+    minAvailable: 50%
+  worker:
+    ## @param pdb.worker.enabled Enable PodDisruptionBudget for Worker pods
+    enabled: true
+    ## @param pdb.worker.minAvailable Minimum pods available (0 = allow drain for single-replica deployments)
+    minAvailable: 0
+
+## PriorityClass configuration for pod scheduling priority
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+priorityClass:
+  ## @param priorityClass.enabled Create and use PriorityClass resource
+  enabled: false
+  ## @param priorityClass.name PriorityClass name
+  name: "app-medium"
+  ## @param priorityClass.value Priority value (higher = more important, system pods use 2000000000+)
+  value: 1000
+  ## @param priorityClass.globalDefault Set as default priority class for all pods
+  globalDefault: false
+  ## @param priorityClass.description Human-readable description
+  description: "Business app pods"
 
 ## @param nodeSelector Node labels for pod assignment (empty = any node)
 ## Example: nodeSelector: { "kubernetes.io/os": "linux" }
@@ -68,6 +125,14 @@ tolerations: []
 ## @param affinity Affinity rules for pod scheduling (empty = default)
 ## Example: affinity: { nodeAffinity: {...} }
 affinity: {}
+
+## Prometheus alerts configuration
+## ref: https://prometheus-operator.dev/docs/operator/design/#prometheusrule
+alerts:
+  ## @param alerts.enabled Enable PrometheusRule resource for alerting
+  enabled: true
+  ## @param alerts.release Prometheus Operator release name (must match Prometheus selector)
+  release: "mon"
 
 # ─────────────────────────────────────────────────────────
 # API Service Configuration
@@ -100,6 +165,19 @@ api:
     type: ClusterIP
     ## @param api.service.port Service port (internal cluster communication)
     port: 80
+
+  ## ServiceMonitor configuration for Prometheus Operator
+  ## ref: https://prometheus-operator.dev/docs/operator/design/#servicemonitor
+  serviceMonitor:
+    ## @param api.serviceMonitor.enabled Enable ServiceMonitor resource for Prometheus scraping
+    enabled: true
+    ## @param api.serviceMonitor.interval Scrape interval
+    interval: 15s
+    ## @param api.serviceMonitor.scrapeTimeout Scrape timeout
+    scrapeTimeout: 5s
+    ## @param api.serviceMonitor.additionalLabels Additional labels for ServiceMonitor (e.g., for Prometheus selector)
+    additionalLabels:
+      release: mon  # Required by Prometheus Operator selector
 
   ## Ingress configuration for external access
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
@@ -186,6 +264,29 @@ redis:
     limits:
       cpu: 200m
       memory: 128Mi
+
+  ## Redis pod-level security context (optional hardening)
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext:
+    ## @param redis.securityContext.runAsNonRoot Require Redis to run as non-root user
+    runAsNonRoot: true
+
+  ## Redis container-level security context (optional hardening)
+  containerSecurityContext:
+    ## @param redis.containerSecurityContext.allowPrivilegeEscalation Prevent privilege escalation
+    allowPrivilegeEscalation: false
+    ## @param redis.containerSecurityContext.readOnlyRootFilesystem Make root filesystem read-only
+    readOnlyRootFilesystem: true
+    ## @param redis.containerSecurityContext.capabilities.drop Drop all Linux capabilities
+    capabilities:
+      drop: ["ALL"]
+
+  ## Temporary volume for Redis when using read-only root filesystem
+  tmpVolume:
+    ## @param redis.tmpVolume.enabled Mount emptyDir volume at /tmp for Redis
+    enabled: true
+    ## @param redis.tmpVolume.mountPath Mount path for temporary directory
+    mountPath: /tmp
 
 # ─────────────────────────────────────────────────────────
 # Environment Variables (injected via ConfigMap)
