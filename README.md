@@ -29,6 +29,23 @@ A production-grade two-service demo (FastAPI **API** + Celery **worker** with Re
 
 **Total Documentation**: 3,359+ lines covering architecture, deployment, operations, and troubleshooting.
 
+> **💡 Development Approach**: This project demonstrates modern DevOps workflow combining hands-on infrastructure work with AI-assisted tooling:
+>
+> **Human-driven** (manual implementation):
+>
+> - ✅ All infrastructure code (K8s manifests, Helm charts, NetworkPolicies, PDBs)
+> - ✅ Shell scripts (backup/restore, smoke tests, deployment automation)
+> - ✅ CI/CD pipeline design and GitHub Actions workflows
+> - ✅ Docker multi-stage builds and security hardening
+> - ✅ Architecture decisions, troubleshooting, and testing
+> - ✅ Prometheus metrics instrumentation and Grafana dashboards
+>
+> **AI-assisted** (Claude Code for productivity):
+>
+> - 📝 Documentation writing and formatting
+> - 🔍 Code review and best practices suggestions
+> - 🐛 Debugging assistance and error analysis
+
 ---
 
 ## ✨ Key Features
