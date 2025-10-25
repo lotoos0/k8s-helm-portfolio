@@ -83,7 +83,21 @@ NEW_CTR="$(get_redis_container)"
 echo "[restore] new pod: $NEW_POD (container: $NEW_CTR)"
 
 echo "[restore] verify PING"
-kubectl -n "$NS" exec "$NEW_POD" -c "$NEW_CTR" -- redis-cli PING
+# Retry logic to handle container initialization delay
+MAX_RETRIES=10
+RETRY_DELAY=4
+for i in $(seq 1 $MAX_RETRIES); do
+  if kubectl -n "$NS" exec "$NEW_POD" -c "$NEW_CTR" -- redis-cli PING >/dev/null 2>&1; then
+    echo "PONG - Redis is ready!"
+    break
+  fi
+  if [ $i -eq $MAX_RETRIES ]; then
+    echo "Failed to verify Redis after $MAX_RETRIES attempts"
+    exit 1
+  fi
+  echo "  Attempt $i/$MAX_RETRIES failed, retrying in ${RETRY_DELAY}s..."
+  sleep $RETRY_DELAY
+done
 
 echo "[restore] scale worker back to $PREV_WORKER_REPLICAS"
 kubectl -n "$NS" scale deploy/"$WORKER_DEPLOY" --replicas="$PREV_WORKER_REPLICAS" || true
