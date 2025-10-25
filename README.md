@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](docs/ARCHITECTURE.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-comprehensive-brightgreen)](docs/INDEX.md)
-![progress](https://img.shields.io/badge/Project_Progress-77%25-purple)
+![progress](https://img.shields.io/badge/Project_Progress-81%25-purple)
 
 A production-grade two-service demo (FastAPI **API** + Celery **worker** with Redis) showcasing modern DevOps practices:
 
@@ -410,6 +410,32 @@ The Helm chart (`deploy/helm/api`) includes API, Redis, Worker, Ingress, and HPA
 > **Note:** For **production and development** deployments, always use **Helm** (`make helm-*`).
 > The `deploy/k8s-examples/` directory contains raw Kubernetes manifests for **educational purposes only**.
 > Raw manifest commands (`make k8s-*`) are useful for learning Kubernetes concepts, but should **not** be used for production deployments.
+
+### Production Configuration
+
+Production values (`values-prod.yaml`) include:
+
+**Resource Allocation:**
+- **API**: 200m-500m CPU, 256Mi-512Mi memory
+- **Worker**: 150m-500m CPU, 256Mi-512Mi memory
+- **Redis**: 100m-200m CPU, 256Mi-512Mi memory, 5Gi storage
+
+**High Availability:**
+- **API replicas**: 3 (min) → 10 (max via HPA @ 60% CPU)
+- **Worker replicas**: 2 (fixed)
+- **PodDisruptionBudget**: API (66% minAvailable), Worker (50% minAvailable)
+
+**Advanced Features:**
+- **Pod Anti-Affinity**: Spreads pods across nodes for resilience
+- **Topology Spread Constraints**: Ensures even distribution (maxSkew: 1)
+- **Priority Class**: Business app priority (value: 1000)
+- **Security**: Non-root (UID 10001), read-only filesystem, NetworkPolicy isolation
+
+**Estimated Resource Usage:**
+```
+Minimum: 1 vCPU, 1.5GB RAM (3 API + 2 Worker + 1 Redis)
+Maximum: ~5 vCPUs, 5GB RAM (HPA scaled to 10 API pods)
+```
 
 ### Registry & Image Tags
 

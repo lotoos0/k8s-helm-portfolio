@@ -1,25 +1,158 @@
 namespace: october
-imagePullPolicy: IfNotPresent
+# ----- Images -----
 api:
   image:
-    repository: ghcr.io/your-org/october-api
+    repository: ghcr.io/lotoos0/october-api
     tag: 0.1.0
-  replicaCount: 2
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  service:
+    type: ClusterIP
+    port: 80
   ingress:
     enabled: true
     className: nginx
-    host: "api.example.com"
+    host: "api.prod.192.168.49.2.nip.io"
+    path: /(.*)
   hpa:
     enabled: true
-    minReplicas: 2
+    minReplicas: 3
     maxReplicas: 10
     targetCPU: 60
+  podLabels:
+    tier: "frontend"
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 worker:
   image:
-    repository: ghcr.io/your-org/october-worker
+    repository: ghcr.io/lotoos0/october-worker
     tag: 0.1.0
   replicaCount: 2
+  resources:
+    requests:
+      cpu: "150m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  podLabels:
+    tier: "backend"
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+# ---- Redis PVC ----- 
 redis:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
   storage: 5Gi
+# --- Global security defaults ---
+imagePullPolicy: IfNotPresent
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+tmpVolume:
+  enabled: true
+  mountPath: /tmp
+  medium: ""
+  sizeLimit: "64Mi"
+# --- NetworkPolicy (default-deny + allow) ---
+networkPolicy:
+  enabled: true
+  defaultDeny: true
+  allowFromIngressNginx: true
+  ingressNginxNamespace: ingress-nginx
+  allowDNS: true
+  allowApiToRedis: true
+  allowWorkerToRedis: true
+# --- PDB & Priority ---
+pdb:
+  api:
+    enabled: true
+    minAvailable: 66%
+  worker:
+    enabled: true
+    minAvailable: 50%
+priorityClass:
+  enabled: true
+  name: "app-medium"
+  value: 1000
+  globalDefault: false
+  description: "Business app pods (prod)"
+# --- Probes ---
+probes:
+  readiness:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+  liveness:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  startup:
+    failureThreshold: 10
+    periodSeconds: 5
+    timeoutSeconds: 2
+# --- ServiceMonitor (Prometheus) ---
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 5s
+  additionalLabels:
+    release: mon
+# --- Alerts (PrometheusRule) ---
+alerts:
+  enabled: true
+  release: mon
+# --- Anti-affinity & spread ---
+topology:
+  spreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+affinity:
+  api:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: api
+            topologyKey: kubernetes.io/hostname
+  worker:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: worker
+            topologyKey: kubernetes.io/hostname
 env:
   APP_ENV: "prod"
+  LOG_LEVEL: "INFO"
