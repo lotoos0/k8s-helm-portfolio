@@ -1,0 +1,24 @@
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/api-75bb7f859-4mnhr       1/1     Running   0          48s
+pod/api-75bb7f859-mldsd       1/1     Running   0          48s
+pod/api-75bb7f859-q66nl       1/1     Running   0          16m
+pod/redis-5bd7d9dcc5-9bv4n    1/1     Running   0          16m
+pod/worker-6ff6ffcdd7-7zw9t   1/1     Running   0          16m
+pod/worker-6ff6ffcdd7-dmvw7   1/1     Running   0          16m
+
+NAME            TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/api     ClusterIP   10.97.70.227   <none>        80/TCP     16m
+service/redis   ClusterIP   10.96.95.96    <none>        6379/TCP   16m
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/api      3/3     3            3           16m
+deployment.apps/redis    1/1     1            1           16m
+deployment.apps/worker   2/2     2            2           16m
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/api-75bb7f859       3         3         3       16m
+replicaset.apps/redis-5bd7d9dcc5    1         1         1       16m
+replicaset.apps/worker-6ff6ffcdd7   2         2         2       16m
+
+NAME                                      REFERENCE        TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/api   Deployment/api   cpu: 0%/60%   3         10        3          16m

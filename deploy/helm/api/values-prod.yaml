@@ -1,9 +1,9 @@
-namespace: october
+namespace: production
 # ----- Images -----
 api:
   image:
-    repository: ghcr.io/lotoos0/october-api
-    tag: 0.1.0
+    repository: october-api
+    tag: dev
   replicaCount: 3
   resources:
     requests:
@@ -30,13 +30,21 @@ api:
   podAnnotations: {}
   nodeSelector: {}
   tolerations: []
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: api
+            topologyKey: kubernetes.io/hostname
   podSecurityContext: {}
   containerSecurityContext: {}
 worker:
   image:
-    repository: ghcr.io/lotoos0/october-worker
-    tag: 0.1.0
+    repository: october-worker
+    tag: dev
   replicaCount: 2
   resources:
     requests:
@@ -50,7 +58,15 @@ worker:
   podAnnotations: {}
   nodeSelector: {}
   tolerations: []
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: worker
+            topologyKey: kubernetes.io/hostname
 # ---- Redis PVC ----- 
 redis:
   resources:
@@ -134,25 +150,6 @@ topology:
     maxSkew: 1
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: ScheduleAnyway
-affinity:
-  api:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app: api
-            topologyKey: kubernetes.io/hostname
-  worker:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app: worker
-            topologyKey: kubernetes.io/hostname
 env:
   APP_ENV: "prod"
   LOG_LEVEL: "INFO"
