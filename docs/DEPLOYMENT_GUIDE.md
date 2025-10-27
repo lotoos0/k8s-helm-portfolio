@@ -546,6 +546,148 @@ helm upgrade --install app deploy/helm/api \
   -f deploy/helm/api/values-prod.yaml
 ```
 
+### Production Configuration Details
+
+Production values (`values-prod.yaml`) include comprehensive settings for high availability and performance:
+
+#### Resource Allocation
+
+**API**:
+```yaml
+api:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+```
+
+**Worker**:
+```yaml
+worker:
+  resources:
+    requests:
+      cpu: 150m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+```
+
+**Redis**:
+```yaml
+redis:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  persistence:
+    size: 5Gi
+```
+
+#### High Availability Configuration
+
+**Replica Counts**:
+```yaml
+api:
+  replicaCount: 3  # Minimum 3 for HA
+
+worker:
+  replicaCount: 2  # Minimum 2 for redundancy
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+```
+
+**PodDisruptionBudget**:
+```yaml
+podDisruptionBudget:
+  enabled: true
+  # API: At least 66% of pods must remain available
+  api:
+    minAvailable: 66%
+  # Worker: At least 50% of pods must remain available
+  worker:
+    minAvailable: 50%
+```
+
+#### Advanced Features
+
+**Pod Anti-Affinity** (spreads pods across nodes):
+```yaml
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: ["api"]
+          topologyKey: kubernetes.io/hostname
+```
+
+**Topology Spread Constraints** (ensures even distribution):
+```yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app: api
+```
+
+**Priority Class** (for scheduling priority):
+```yaml
+priorityClass:
+  enabled: true
+  name: business-app
+  value: 1000  # Higher than default (0)
+```
+
+**Security Context** (non-root, read-only filesystem):
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 10001
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: true
+```
+
+#### Estimated Resource Usage
+
+**Minimum (baseline)**:
+- CPU: ~1.0 vCPU (3 API + 2 Worker + 1 Redis)
+- Memory: ~1.5 GB RAM
+- Storage: 5 GB (Redis PVC)
+
+**Maximum (HPA scaled)**:
+- CPU: ~5.0 vCPUs (10 API + 2 Worker + 1 Redis)
+- Memory: ~5.5 GB RAM
+- Storage: 5 GB (Redis PVC)
+
+**Cost Estimation** (example on AWS EKS):
+- t3.xlarge node (4 vCPU, 16GB RAM): ~$0.17/hour
+- 3 nodes for HA: ~$370/month
+- Plus EBS storage (5GB): ~$0.50/month
+
 ### Production Deployment Steps
 
 **1. Tag Release**:
