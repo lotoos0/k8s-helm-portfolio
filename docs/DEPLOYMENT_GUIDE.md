@@ -962,13 +962,13 @@ helm get values app -n october
 
 After successful deployment:
 
-1. **Configure Monitoring**: [Monitoring Setup](../README.md#-monitoring-prometheus--grafana) (Prometheus + Grafana + ServiceMonitor)
-2. **Set Up Alerts**: PrometheusRule configured (CrashLoopBackOff, High CPU) - see [README Alerts](../README.md#alerts-prometheusrule)
-3. **Review Security**: [Security Hardening](SECURITY_GUIDE.md)
-4. **Backup Strategy**: [Backup & Restore](../runbooks/redis-backup-restore.md)
+1. **Configure Monitoring**: [Observability Guide](observability.md) (Prometheus + Grafana + ServiceMonitor)
+2. **Set Up Alerts**: PrometheusRule configured (CrashLoopBackOff, High CPU) - see [Observability: Alerts](observability.md#alerts-prometheusrule)
+3. **Review Security**: [Security Guide](SECURITY.md)
+4. **Backup Strategy**: [Redis Backup & Restore](REDIS_BACKUP.md)
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-19
+**Document Version**: 1.1
+**Last Updated**: 2025-10-27
 **Tested With**: Minikube 1.32, Kubernetes 1.28, Helm 3.14
