@@ -91,6 +91,31 @@ k8s-build-load: ## Build images and load to Minikube
 	make build-api
 	minikube image load october-api:dev
 
+minikube-cleanup-images: ## Remove old dev-* images from Minikube (keeps last 3)
+	@minikube ssh "docker images --format '{{.Repository}}:{{.Tag}}' | grep 'october-api:dev-' | sort -r | tail -n +4" | \
+	  xargs -I {} sh -c 'minikube ssh "docker rmi -f {}" || true'
+
+dev-deploy: ## Quick dev: build + load + helm upgrade (uses timestamp tag)
+	@TAG=dev-$$(date +%s); \
+	echo "Deploying with tag: $$TAG"; \
+	docker build -t october-api:$$TAG ./api; \
+	minikube image load october-api:$$TAG; \
+	IP=$$(minikube ip); HOST=api.$$IP.nip.io; \
+	helm upgrade --install $(HELM_NAME) $(HELM_DIR) \
+	  -n $(HELM_NS) --create-namespace \
+	  -f $(HELM_DIR)/values.yaml -f $(HELM_DIR)/values-dev.yaml \
+	  --set api.ingress.host=$$HOST \
+	  --set api.image.tag=$$TAG \
+	  --atomic --timeout 5m --history-max 10
+
+dev-deploy-quick: ## Quick deploy: build + kubectl set image (faster, no helm)
+	@TAG=dev-$$(date +%s); \
+	echo "Deploying with tag: $$TAG"; \
+	docker build -t october-api:$$TAG ./api; \
+	minikube image load october-api:$$TAG; \
+	kubectl -n $(HELM_NS) set image deploy/api api=october-api:$$TAG; \
+	kubectl -n $(HELM_NS) rollout status deploy/api --timeout=60s
+
 k8s-apply: ## Apply namespace + config + api (deployment, service)
 	kubectl apply -f deploy/k8s/ns.yaml
 	kubectl apply -f deploy/k8s/configmap.yaml
