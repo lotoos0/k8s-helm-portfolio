@@ -1,7 +1,6 @@
 import hashlib
 import os
 import time
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
@@ -138,13 +137,9 @@ def create_app() -> FastAPI:
         Try iterations=500000 or data_size_kb=1000 for heavier load.
         """
         if iterations < 1 or iterations > 1_000_000:
-            raise HTTPException(
-                status_code=400, detail="iterations must be between 1 and 1000000"
-            )
+            raise HTTPException(status_code=400, detail="iterations must be between 1 and 1000000")
         if data_size_kb < 1 or data_size_kb > 10000:
-            raise HTTPException(
-                status_code=400, detail="data_size_kb must be between 1 and 10000"
-            )
+            raise HTTPException(status_code=400, detail="data_size_kb must be between 1 and 10000")
 
         start = time.perf_counter()
 
@@ -173,9 +168,7 @@ def create_app() -> FastAPI:
         Try size_mb=500 or size_mb=1000 to test memory limits.
         """
         if size_mb < 1 or size_mb > 2000:
-            raise HTTPException(
-                status_code=400, detail="size_mb must be between 1 and 2000"
-            )
+            raise HTTPException(status_code=400, detail="size_mb must be between 1 and 2000")
         if duration_seconds < 0.1 or duration_seconds > 60:
             raise HTTPException(
                 status_code=400, detail="duration_seconds must be between 0.1 and 60"
@@ -212,9 +205,7 @@ def create_app() -> FastAPI:
         Useful for testing timeouts, readiness probes, and request queueing.
         """
         if delay < 0.1 or delay > 30:
-            raise HTTPException(
-                status_code=400, detail="delay must be between 0.1 and 30"
-            )
+            raise HTTPException(status_code=400, detail="delay must be between 0.1 and 30")
 
         start = time.perf_counter()
         time.sleep(delay)
