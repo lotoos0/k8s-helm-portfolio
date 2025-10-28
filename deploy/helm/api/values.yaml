@@ -245,6 +245,18 @@ worker:
   tolerations: []
   affinity: {}
 
+  ## Celery Exporter sidecar configuration
+  celeryExporter:
+    ## @param worker.celeryExporter.enabled Deploy Celery Exporter sidecar for metrics
+    enabled: true
+    ## @param worker.celeryExporter.image Celery Exporter container image
+    image: danihodovic/celery-exporter:latest
+
+  ## ServiceMonitor configuration for Prometheus scraping
+  serviceMonitor:
+    ## @param worker.serviceMonitor.enabled Create ServiceMonitor resource for Celery metrics
+    enabled: true
+
 # ─────────────────────────────────────────────────────────
 # Redis Configuration
 # ─────────────────────────────────────────────────────────
@@ -287,6 +299,15 @@ redis:
     enabled: true
     ## @param redis.tmpVolume.mountPath Mount path for temporary directory
     mountPath: /tmp
+
+  ## ServiceMonitor configuration for Prometheus scraping
+  serviceMonitor:
+    ## @param redis.serviceMonitor.enabled Create ServiceMonitor resource for Redis metrics
+    enabled: true
+    ## @param redis.serviceMonitor.interval Prometheus scrape interval
+    interval: 15s
+    ## @param redis.serviceMonitor.scrapeTimeout Prometheus scrape timeout
+    scrapeTimeout: 5s
 
 # ─────────────────────────────────────────────────────────
 # Environment Variables (injected via ConfigMap)

@@ -1,0 +1,23 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scraping
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector: {}  # Apply to all pods in namespace
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9121  # Redis exporter
+        - protocol: TCP
+          port: 9808  # Celery exporter
+        - protocol: TCP
+          port: 8000  # API metrics
+{{- end }}

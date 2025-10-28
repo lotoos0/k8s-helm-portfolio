@@ -92,4 +92,20 @@ spec:
             - name: tmp
               mountPath: {{ .Values.tmpVolume.mountPath }}
           {{- end }}
+        {{- if .Values.worker.celeryExporter.enabled }}
+        - name: celery-exporter
+          image: {{ .Values.worker.celeryExporter.image }}
+          ports:
+            - name: metrics
+              containerPort: 9808
+          args:
+            - --broker-url=redis://redis:6379/0
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+        {{- end }}
 

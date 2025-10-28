@@ -596,5 +596,5 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 ---
 
 **Document Version**: 1.0
-**Last Updated**: 2025-10-19
+**Last Updated**: 2025-10-27
 **API Version**: 0.1.0

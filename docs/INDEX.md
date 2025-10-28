@@ -14,12 +14,18 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 
 ### 🔧 Operations
 
+- **[Observability Guide](observability.md)** - Prometheus, Grafana, metrics, dashboards, alerts, runbook
+- **[Operations & Chaos Testing](operations/README.md)** - Resilience testing: pod kill, HPA scaling, rollback scenarios
+- **[CI/CD Pipeline](CI_CD.md)** - Build, scan, deploy, smoke tests, automatic rollback, secrets management
 - **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Quick reference guide with links to detailed runbooks (336 lines)
 - **[Release Checklist](release-checklist.md)** - Pre-deployment and release checklist
 
 > **📖 Understanding Documentation:**
 > - **TROUBLESHOOTING.md** - Quick reference, diagnostic commands, common errors → Links to runbooks
 > - **runbooks/** - Detailed step-by-step incident response procedures
+> - **observability.md** - Complete observability setup and monitoring
+> - **operations/README.md** - Chaos engineering and resilience validation
+> - **CI_CD.md** - Continuous integration and deployment workflows
 
 ### 📚 Runbooks (Step-by-Step Procedures)
 
@@ -78,13 +84,16 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 
 **I want to...**
 - **Understand architecture**: [Architecture Documentation](ARCHITECTURE.md)
-- **Review CI/CD pipeline**: [CI/CD Architecture](ARCHITECTURE.md#cicd-architecture)
+- **Review CI/CD pipeline**: [CI/CD Pipeline Guide](CI_CD.md)
 - **Plan production deployment**: [Production Deployment](DEPLOYMENT_GUIDE.md#production-deployment)
-- **Configure monitoring**: [Monitoring Setup](../README.md#-monitoring-prometheus--grafana) (Prometheus + Grafana)
+- **Configure monitoring**: [Observability Guide](observability.md)
+- **Test resilience**: [Chaos Testing](operations/README.md)
 
 **Key Files**:
 - [`ARCHITECTURE.md`](ARCHITECTURE.md#infrastructure-architecture)
 - [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md#production-best-practices)
+- [`observability.md`](observability.md) - Prometheus + Grafana setup
+- [`CI_CD.md`](CI_CD.md) - Pipeline design and automation
 
 ### 🔒 Security Engineer
 
@@ -101,12 +110,15 @@ Welcome to the comprehensive documentation for the K8s-Helm-CICD-Portfolio proje
 ### 🎯 SRE (Site Reliability Engineer)
 
 **I want to...**
-- **Set up monitoring**: [Monitoring Setup](../README.md#-monitoring-prometheus--grafana) (Prometheus + Grafana + ServiceMonitor)
-- **Configure alerts**: [PrometheusRule Alerts](../README.md#alerts-prometheusrule) (CrashLoopBackOff, High CPU)
+- **Set up monitoring**: [Observability Guide](observability.md) (Prometheus + Grafana + ServiceMonitor)
+- **Configure alerts**: [Observability: Alerts](observability.md#alerts-prometheusrule) (CrashLoopBackOff, High CPU)
 - **Perform rollbacks**: [Upgrade & Rollback](DEPLOYMENT_GUIDE.md#upgrade--rollback)
+- **Test resilience**: [Chaos Testing](operations/README.md)
 - **Troubleshoot incidents**: [Troubleshooting Guide](TROUBLESHOOTING.md)
 
 **Key Files**:
+- [`observability.md`](observability.md) - Complete observability setup
+- [`operations/README.md`](operations/README.md) - Chaos engineering
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md#quick-diagnostics)
 - [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md#rollback-process)
 
@@ -119,16 +131,31 @@ docs/
 ├── INDEX.md                    # This file - Documentation index
 ├── ARCHITECTURE.md             # System architecture and design
 ├── API_REFERENCE.md            # Complete API documentation
-├── DEPLOYMENT_GUIDE.md         # Deployment instructions
+├── DEPLOYMENT_GUIDE.md         # Deployment instructions (with production config)
+├── SECURITY.md                 # Security implementation guide
+├── observability.md            # NEW: Prometheus, Grafana, metrics, alerts
+├── CI_CD.md                    # NEW: CI/CD pipeline, secrets, smoke tests
 ├── TROUBLESHOOTING.md          # Problem-solving guide
 ├── release-checklist.md        # Pre-deployment checklist
 ├── k9s-cheats.md              # k9s quick reference
-├── local-vs-k8s-runbook.md    # Environment comparison
-├── runbooks/
-│   └── kubectl_no_route_to_host.md
-└── releases/
-    └── dev-2025-10-14/         # Release snapshots
+├── REDIS_BACKUP.md             # Redis backup/restore procedures
+├── operations/
+│   └── README.md               # NEW: Chaos testing and resilience
+├── runbooks/                   # Detailed incident response procedures
+│   ├── crashloopbackoff.md
+│   ├── image_pull_backoff.md
+│   ├── ingress_not_working.md
+│   ├── helm_upgrade_failed.md
+│   └── ...
+└── releases/                   # Release snapshots
+    └── dev-2025-10-14/
 ```
+
+**New Documentation (DAY27)**:
+- `observability.md` - 500+ lines on monitoring, dashboards, alerts
+- `operations/README.md` - 400+ lines on chaos testing (pod kill, HPA, rollback)
+- `CI_CD.md` - 500+ lines on CI/CD pipeline, secrets, smoke tests
+- Updated `DEPLOYMENT_GUIDE.md` with production configuration details
 
 ---
 
@@ -256,29 +283,32 @@ curl -s http://api.$MINIKUBE_IP.nip.io/healthz
 
 **Documentation**: [CI/CD Deployment](DEPLOYMENT_GUIDE.md#cicd-deployment)
 
-### ✅ M4: Observability (Oct 20) - COMPLETED
+### ✅ M4: Observability (Oct 23) - COMPLETED
 - [x] Prometheus + Grafana (kube-prometheus-stack)
 - [x] Metrics dashboards (RPS, latency p95, 5xx rate)
 - [x] ServiceMonitor with automatic scraping
 - [x] PrometheusRule (CrashLoopBackOff, High CPU alerts)
-- [ ] Alertmanager configuration (advanced routing)
-- [ ] Security hardening
-- [ ] NetworkPolicy
+- [x] Alertmanager configuration (Slack integration)
+- [x] Security hardening (Alpine images, -59% reduction)
+- [x] NetworkPolicy (default-deny)
 
 **Documentation**:
-- [README - Monitoring Section](../README.md#-monitoring-prometheus--grafana)
+- [Observability Guide](observability.md)
+- [Security Guide](SECURITY.md)
 - [Architecture - Observability](ARCHITECTURE.md#observability-architecture)
 
-### 📋 M5: Production Ready (Oct 31)
-- [ ] Redis backup/restore
-- [ ] Production configuration
-- [ ] Chaos testing
-- [ ] Cost analysis
-- [ ] Release v0.1.0
+### ✅ M5: Production Ready (Oct 31) - COMPLETED
+- [x] Redis backup/restore scripts
+- [x] Production configuration (resources, HA, PDB)
+- [x] Chaos testing (pod kill, HPA, rollback)
+- [x] Documentation restructure (slim README + comprehensive docs)
+- [x] Release v0.1.0
 
-**Planned Documentation**:
-- `OPERATIONS_GUIDE.md`
-- `COST_ANALYSIS.md`
+**Documentation**:
+- [Operations & Chaos Testing](operations/README.md)
+- [CI/CD Pipeline](CI_CD.md)
+- [Deployment Guide: Production](DEPLOYMENT_GUIDE.md#production-configuration-details)
+- [Redis Backup](REDIS_BACKUP.md)
 
 ---
 
@@ -358,9 +388,9 @@ curl -s http://api.$MINIKUBE_IP.nip.io/healthz
 
 ---
 
-**Documentation Version**: 1.0
-**Last Updated**: 2025-10-19
-**Project Version**: 0.1.0 (M3 Complete)
+**Documentation Version**: 2.0
+**Last Updated**: 2025-10-27
+**Project Version**: 0.1.0 (M5 Complete - Production Ready)
 
 ---
 

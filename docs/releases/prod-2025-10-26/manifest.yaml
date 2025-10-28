@@ -1,0 +1,551 @@
+---
+# Source: app/templates/priorityclass.yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: app-medium
+value: 1000
+globalDefault: false
+description: "Business app pods (prod)"
+---
+# Source: app/templates/networkpolicy-api-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow-from-ingress-nginx
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000  # Container port, not Service port
+---
+# Source: app/templates/networkpolicy-api-redis.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow-egress-redis
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# Source: app/templates/networkpolicy-default-deny.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+# Source: app/templates/networkpolicy-egress-dns.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-dns
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Source: app/templates/networkpolicy-redis-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-allow-from-api-worker
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api
+        - podSelector:
+            matchLabels:
+              app: worker
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# Source: app/templates/networkpolicy-worker-redis.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: worker-allow-egress-redis
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: worker
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# Source: app/templates/pdb-api.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+  namespace: production
+spec:
+  minAvailable: 66%
+  selector:
+    matchLabels:
+      app: api
+---
+# Source: app/templates/pdb-worker.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker-pdb
+  namespace: production
+spec:
+  minAvailable: 50%
+  selector:
+    matchLabels:
+      app: worker
+---
+# Source: app/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-app
+  namespace: production
+  labels:
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+---
+# Source: app/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: production
+data:
+  APP_ENV: "prod"
+  APP_NAME: "DevOps October API"
+  BROKER_URL: "redis://redis:6379/0"
+  LOG_LEVEL: "INFO"
+  PORT: "8000"
+  RESULT_BACKEND: "redis://redis:6379/1"
+---
+# Source: app/templates/pvc-redis.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: production
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Source: app/templates/deployment-redis.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: production
+  labels: { app: redis }
+spec:
+  type: ClusterIP
+  selector: { app: redis }
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+# Source: app/templates/service-api.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: production
+  labels:
+    app: api
+spec:
+  type: ClusterIP
+  selector: { app: api }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Source: app/templates/deployment-api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: production
+  labels:
+    app: api
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+      app.kubernetes.io/name: app
+      app.kubernetes.io/instance: app
+  template:
+    metadata:
+      labels:
+        app: api
+        app.kubernetes.io/name: app
+        app.kubernetes.io/instance: app
+        app.kubernetes.io/version: 0.1.0
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: app
+        helm.sh/chart: app-0.1.0
+        tier: frontend
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: app-app
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: api
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      priorityClassName: app-medium
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      containers:
+        - name: api
+          image: "october-api:dev"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef: { name: app-config }
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            failureThreshold: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+---
+# Source: app/templates/deployment-redis.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: production
+  labels: { app: redis }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - name: redis
+              containerPort: 6379
+          args: ["--appendonly", "no", "--save", ""]
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+# Source: app/templates/deployment-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: production
+  labels:
+    app: worker
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+      app.kubernetes.io/name: app
+      app.kubernetes.io/instance: app
+  template:
+    metadata:
+      labels:
+        app: worker
+        app.kubernetes.io/name: app
+        app.kubernetes.io/instance: app
+        app.kubernetes.io/version: 0.1.0
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: app
+        helm.sh/chart: app-0.1.0
+        tier: backend
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: app-app
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: worker
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      priorityClassName: app-medium
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      containers:
+        - name: worker
+          image: "october-worker:dev"
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: app-config }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 150m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+---
+# Source: app/templates/hpa-api.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+---
+# Source: app/templates/ingress-api.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  namespace: production
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.prod.192.168.49.2.nip.io
+      http:
+        paths:
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+---
+# Source: app/templates/prometheusrule.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-alerts
+  namespace: monitoring
+  labels:
+    release: "mon"  # musi odpowiadać release'owi Prometheusa
+    app: production  # Tag which app this alert belongs to
+spec:
+  groups:
+    - name: app.rules
+      rules:
+        - alert: CrashLoopBackOffPods
+          expr: |
+            sum by (pod) (
+              kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", namespace="production"}
+            ) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod in CrashLoopBackOff ({{ $labels.pod }})"
+            description: "Pod has been in CrashLoopBackOff for >5m."
+
+        - alert: HighCPUApi
+          expr: |
+            sum by (pod) (
+              rate(container_cpu_usage_seconds_total{namespace="production", pod=~"api-.*"}[5m])
+            )
+            /
+            sum by (pod) (
+              kube_pod_container_resource_requests{namespace="production", resource="cpu", pod=~"api-.*"}
+            ) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU (>80%) on API ({{ $labels.pod }})"
+            description: "CPU usage over 80% of requested for 5m."
+---
+# Source: app/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api
+  namespace: production
+  labels:
+    app.kubernetes.io/name: app
+    app.kubernetes.io/instance: app
+    app.kubernetes.io/version: 0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: app
+    helm.sh/chart: app-0.1.0
+    release: mon
+spec:
+  namespaceSelector:
+    matchNames:
+      - production
+  selector:
+    matchLabels:
+      app: api
+  endpoints:
+    - port: http
+      interval: 15s
+      scrapeTimeout: 5s
+      path: /metrics
+

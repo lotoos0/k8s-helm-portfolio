@@ -1,0 +1,18 @@
+{{- if .Values.worker.celeryExporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: worker
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: worker
+  ports:
+    - name: metrics
+      port: 9808
+      targetPort: metrics
+{{- end }}

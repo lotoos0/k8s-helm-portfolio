@@ -1,0 +1,148 @@
+USER-SUPPLIED VALUES:
+alerts:
+  enabled: true
+  release: mon
+api:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: api
+          topologyKey: kubernetes.io/hostname
+        weight: 100
+  containerSecurityContext: {}
+  hpa:
+    enabled: true
+    maxReplicas: 10
+    minReplicas: 3
+    targetCPU: 60
+  image:
+    repository: october-api
+    tag: dev
+  ingress:
+    className: nginx
+    enabled: true
+    host: api.prod.192.168.49.2.nip.io
+    path: /(.*)
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels:
+    tier: frontend
+  podSecurityContext: {}
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  service:
+    port: 80
+    type: ClusterIP
+  tolerations: []
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+env:
+  APP_ENV: prod
+  LOG_LEVEL: INFO
+imagePullPolicy: IfNotPresent
+namespace: production
+networkPolicy:
+  allowApiToRedis: true
+  allowDNS: true
+  allowFromIngressNginx: true
+  allowWorkerToRedis: true
+  defaultDeny: true
+  enabled: true
+  ingressNginxNamespace: ingress-nginx
+pdb:
+  api:
+    enabled: true
+    minAvailable: 66%
+  worker:
+    enabled: true
+    minAvailable: 50%
+podSecurityContext:
+  fsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+priorityClass:
+  description: Business app pods (prod)
+  enabled: true
+  globalDefault: false
+  name: app-medium
+  value: 1000
+probes:
+  liveness:
+    failureThreshold: 3
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 2
+  readiness:
+    failureThreshold: 3
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    timeoutSeconds: 2
+  startup:
+    failureThreshold: 10
+    periodSeconds: 5
+    timeoutSeconds: 2
+redis:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  storage: 5Gi
+serviceMonitor:
+  additionalLabels:
+    release: mon
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 5s
+tmpVolume:
+  enabled: true
+  medium: ""
+  mountPath: /tmp
+  sizeLimit: 64Mi
+topology:
+  spreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+worker:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: worker
+          topologyKey: kubernetes.io/hostname
+        weight: 100
+  image:
+    repository: october-worker
+    tag: dev
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels:
+    tier: backend
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 150m
+      memory: 256Mi
+  tolerations: []
