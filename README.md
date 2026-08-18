@@ -1,7 +1,7 @@
 # October DevOps – K8s + Helm + CI/CD + Observability
 
 [![Milestone](https://img.shields.io/badge/Milestone-M5%20Complete-success)](docs/INDEX.md)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/your-username/k8s-helm-cicd-portfolio/releases)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/lotoos0/k8s-helm-cicd-portfolio/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![progress](https://img.shields.io/badge/Project_Progress-100%25-purple)
 
@@ -305,16 +305,7 @@ make k8s-get
 
 ---
 
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit with milestone tags (`git commit -m "[DAY27] Add feature"`)
-4. Push and open a Pull Request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+> Status: Completed / Archived — This project is finished and no longer actively maintained.
 
 ---
 
